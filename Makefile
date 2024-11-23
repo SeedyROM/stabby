@@ -18,3 +18,6 @@ build: build-dev
 
 run: build
 	./build/src/game/stabby
+
+clean:
+	rm -rf build
