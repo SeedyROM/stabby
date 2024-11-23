@@ -8,10 +8,10 @@ $(foreach cmd,$(REQUIRED_CMDS),\
         	ninja: pip install ninja)))
 
 deps-debug: conanfile.txt
-	conan install . --output-folder=build --build=missing -s build_type=Debug
+	conan install . --output-folder=. --build=missing -s build_type=Debug
 
 deps-release: conanfile.txt
-	conan install . --output-folder=build --build=missing -s build_type=Release
+	conan install . --output-folder=. --build=missing -s build_type=Release
 
 deps: deps-debug
 

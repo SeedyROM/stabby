@@ -1,57 +1,74 @@
+#include <SDL2/SDL.h>
+#include <glad/glad.h>
 #include <iostream>
 
-#include <SDL2/SDL.h>
-
-#include <engine/engine.h>
-
-int main(int argc, char **argv) {
-  ste::test();
-
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
-    return 1;
+int main(int argc, char *argv[]) {
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
+    return -1;
   }
 
-  SDL_Window *window =
-      SDL_CreateWindow("Hello, SDL2", 100, 100, 640, 480, SDL_WINDOW_SHOWN);
-  if (window == nullptr) {
-    std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+  // Set OpenGL attributes
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+  // Create window with OpenGL context
+  SDL_Window *window = SDL_CreateWindow("SDL2 + OpenGL", SDL_WINDOWPOS_CENTERED,
+                                        SDL_WINDOWPOS_CENTERED, 800, 600,
+                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+
+  if (!window) {
+    std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
     SDL_Quit();
-    return 1;
+    return -1;
   }
 
-  SDL_Renderer *renderer = SDL_CreateRenderer(
-      window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-  if (renderer == nullptr) {
+  // Create OpenGL context
+  SDL_GLContext glContext = SDL_GL_CreateContext(window);
+  if (!glContext) {
+    std::cerr << "OpenGL context creation failed: " << SDL_GetError()
+              << std::endl;
     SDL_DestroyWindow(window);
-    std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
     SDL_Quit();
-    return 1;
+    return -1;
   }
 
-  // Clear and draw initial frame
-  SDL_RenderClear(renderer);
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  SDL_Rect rect = {220, 140, 200, 200};
-  SDL_RenderFillRect(renderer, &rect);
-  SDL_RenderPresent(renderer);
+  // Initialize GLAD
+  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+    std::cerr << "Failed to initialize GLAD" << std::endl;
+    SDL_GL_DeleteContext(glContext);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return -1;
+  }
 
-  // Main event loop
-  bool quit = false;
-  SDL_Event event;
-  while (!quit) {
-    // Process events
+  // Optional: Enable VSync
+  SDL_GL_SetSwapInterval(1);
+
+  bool running = true;
+  while (running) {
+    SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
-        quit = true;
+        running = false;
       }
     }
 
-    // You can add rendering updates here if needed
+    // Clear the screen
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
+    // Your OpenGL rendering code here...
+
+    // Swap buffers
+    SDL_GL_SwapWindow(window);
   }
 
   // Cleanup
-  SDL_DestroyRenderer(renderer);
+  SDL_GL_DeleteContext(glContext);
   SDL_DestroyWindow(window);
   SDL_Quit();
 
