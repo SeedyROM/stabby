@@ -1,7 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
-if "%1"=="" goto default
+if "%1"=="" goto usage
+if "%1"=="-h" goto usage
+if "%1"=="--help" goto usage
+if "%1"=="help" goto usage
 if "%1"=="deps-debug" goto deps-debug
 if "%1"=="deps-release" goto deps-release
 if "%1"=="deps" goto deps
@@ -11,6 +14,25 @@ if "%1"=="build" goto build
 if "%1"=="run" goto run
 if "%1"=="clean" goto clean
 echo Invalid target
+goto usage
+
+:usage
+echo Usage: make [target]
+echo.
+echo Targets:
+echo   deps-debug    - Install debug dependencies using Conan
+echo   deps-release  - Install release dependencies using Conan
+echo   deps         - Install debug dependencies (default)
+echo   build-dev    - Build debug version
+echo   build-release- Build release version
+echo   build       - Build debug version (default)
+echo   run         - Build and run the game
+echo   clean       - Remove build directory
+echo.
+echo Examples:
+echo   make deps    - Install dependencies
+echo   make build   - Build debug version
+echo   make run     - Build and run the game
 goto :eof
 
 :deps-debug
@@ -65,10 +87,6 @@ if exist build (
 ) else (
     echo Build directory does not exist
 )
-goto :eof
-
-:default
-call :build
 goto :eof
 
 :error
