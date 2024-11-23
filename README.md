@@ -8,7 +8,7 @@ Create a 2D hack 'n' slash game, taking the principals from my XNA/FNA/Monogame 
 - [x] Separate engine from game code via CMake.
 - [x] Setup Conan.
 - [x] Initial project setup with Conan and SDL2/GLAD/GLM.
-- [ ] Create reproducable builds with Makefile/make.bat script code.
+- [x] Create reproducable builds with Makefile/make.bat script code.
 - [ ] Create simple sprite renderer using OpenGL.
 - [ ] Refactor/move my C# ECS implementation into C++23.
 - [ ] Resource loading.
