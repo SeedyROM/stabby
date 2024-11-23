@@ -1,6 +1,29 @@
 @echo off
 setlocal enabledelayedexpansion
 
+rem Check required dependencies
+where conan >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Error: Conan is not installed or not in PATH
+    echo Install with: pip install conan
+    exit /b 1
+)
+
+where cmake >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Error: CMake is not installed or not in PATH
+    echo Download from: https://cmake.org/download/
+    exit /b 1
+)
+
+where ninja >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Error: Ninja is not installed or not in PATH
+    echo Install with: pip install ninja
+    echo Or download from: https://github.com/ninja-build/ninja/releases
+    exit /b 1
+)
+
 if "%1"=="" goto usage
 if "%1"=="-h" goto usage
 if "%1"=="--help" goto usage
