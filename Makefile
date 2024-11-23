@@ -25,8 +25,13 @@ build-release:
 
 build: build-dev
 
-run: build
-	./build/src/game/stabby
+run-debug: build-dev
+	./build/Debug/src/game/stabby
+
+run-release: build-release
+	./build/Release/src/game/stabby
+
+run: run-debug
 
 clean:
 	rm -rf build
