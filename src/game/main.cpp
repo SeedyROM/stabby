@@ -1,8 +1,17 @@
-
 #include <iostream>
 
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
+
+#include <engine/engine.h>
+
+struct Position {
+  float x, y;
+};
+
+struct Velocity {
+  float dx, dy;
+};
 
 int main(int argc, char *argv[]) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -47,26 +56,73 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  ste::World world;
+
+  // Spawn some entities
+  auto entity1 = world.spawn().with(Position{0, 0}).with(Velocity{1, 1});
+  auto entity2 = world.spawn().with(Position{10, 10}).with(Velocity{-1, 0});
+
+  // Add physics system
+  world.addSystem("Physics", [](ste::World &world) {
+    auto time = world.getResource<ste::Time>();
+    ste::Query<Position, Velocity> query(&world);
+
+    for (auto &&[entity, pos, vel] : query) {
+      pos.x += vel.dx * time->deltaSeconds;
+      pos.y += vel.dy * time->deltaSeconds;
+    }
+  });
+
   // Optional: Enable VSync
   SDL_GL_SetSwapInterval(1);
 
+  // Initialize game timer
+  GameTimer timer(60); // 60 FPS target
+
   bool running = true;
   while (running) {
+    timer.tick();
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
         running = false;
+      } else if (event.type == SDL_KEYDOWN) {
+        switch (event.key.keysym.sym) {
+        case SDLK_SPACE:
+          timer.togglePause();
+          break;
+        case SDLK_1:
+          timer.slowMotion();
+          break;
+        case SDLK_2:
+          timer.normalSpeed();
+          break;
+        case SDLK_3:
+          timer.fastForward();
+          break;
+        case SDLK_f:
+          timer.setShowFPS(!timer.getFPS());
+          break;
+        }
       }
     }
 
+    // Update world with actual delta time
+    world.update(timer.getDeltaTime());
+
     // Clear the screen
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(fmod(entity1.get<Position>().x, 1.0f), 0.3f, 0.3f, 1.0f);
 
-    // Your OpenGL rendering code here...
+    // Render world
+    world.render();
 
     // Swap buffers
     SDL_GL_SwapWindow(window);
+
+    // Limit frame rate
+    timer.limitFrameRate();
   }
 
   // Cleanup
