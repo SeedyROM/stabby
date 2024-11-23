@@ -2,6 +2,6 @@
 
 #include <iostream>
 
-namespace engine {
+namespace ste {
 void test();
-} // namespace engine
+} // namespace ste

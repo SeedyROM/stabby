@@ -1,9 +1,9 @@
 #include "engine.h"
 
-namespace engine {
+namespace ste {
 /**
  * @brief Test the library
  *
  */
 void test() { std::cout << "engine::test()" << std::endl; }
-} // namespace engine
+} // namespace ste

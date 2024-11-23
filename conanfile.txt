@@ -1,6 +1,7 @@
 [requires]
 sdl/2.30.9
 glm/cci.20230113
+stb/cci.20240531
 [generators]
 CMakeDeps
 CMakeToolchain
