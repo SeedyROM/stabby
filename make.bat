@@ -34,6 +34,7 @@ if "%1"=="build-dev" goto build-dev
 if "%1"=="build-release" goto build-release
 if "%1"=="build" goto build
 if "%1"=="run" goto run
+if "%1"=="play" goto play
 if "%1"=="clean" goto clean
 echo Invalid target
 goto usage
@@ -55,6 +56,8 @@ echo Examples:
 echo   make deps    - Install dependencies
 echo   make build   - Build debug version
 echo   make run     - Build and run the game
+echo   make play    - Alias of run
+echo   make clean   - Remove build directory
 goto :eof
 
 :deps-debug
@@ -100,6 +103,10 @@ goto :eof
 :run
 call :build
 build\Debug\src\game\stabby.exe
+goto :eof
+
+:play
+call :run
 goto :eof
 
 :clean

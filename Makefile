@@ -36,7 +36,9 @@ run: run-debug
 clean:
 	rm -rf build
 
-.PHONY: deps-debug deps-release deps build-dev build-release build run clean
+play: run
+
+.PHONY: deps-debug deps-release deps build-dev build-release build run play clean
 
 help:
 	@echo "Usage: make [target]"
@@ -55,5 +57,7 @@ help:
 	@echo "  make deps    - Install dependencies"
 	@echo "  make build   - Build debug version"
 	@echo "  make run     - Build and run the game"
+	@echo "  make play   -  Build and run the game"
+	@echo "  make clean   - Remove build directory"
 
 .DEFAULT_GOAL := help
