@@ -8,20 +8,20 @@ $(foreach cmd,$(REQUIRED_CMDS),\
         	ninja: pip install ninja)))
 
 deps-debug: conanfile.txt
-	conan install . --output-folder=. --build=missing -s build_type=Debug
+	conan install . --build=missing -s build_type=Debug
 
 deps-release: conanfile.txt
-	conan install . --output-folder=. --build=missing -s build_type=Release
+	conan install . --build=missing -s build_type=Release
 
 deps: deps-debug
 
 build-dev: 
-	cmake --preset conan-debug -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-	cmake  --build build
+	cmake --preset conan-debug -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug
+	cmake --build build/Debug
 
 build-release:
-	cmake --preset conan-release -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-	cmake  --build build 
+	cmake --preset conan-release -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+	cmake --build build/Release
 
 build: build-dev
 
