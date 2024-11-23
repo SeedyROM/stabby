@@ -20,7 +20,6 @@ where ninja >nul 2>&1
 if %errorlevel% neq 0 (
     echo Error: Ninja is not installed or not in PATH
     echo Install with: pip install ninja
-    echo Or download from: https://github.com/ninja-build/ninja/releases
     exit /b 1
 )
 
@@ -60,7 +59,7 @@ goto :eof
 
 :deps-debug
 if exist conanfile.txt (
-    conan install . --output-folder=build --build=missing -s build_type=Debug
+    conan install . --build=missing -s build_type=Debug
 ) else (
     echo conanfile.txt not found
     exit /b 1
@@ -69,7 +68,7 @@ goto :eof
 
 :deps-release
 if exist conanfile.txt (
-    conan install . --output-folder=build --build=missing -s build_type=Release
+    conan install . --build=missing -s build_type=Release
 ) else (
     echo conanfile.txt not found
     exit /b 1
@@ -81,16 +80,16 @@ call :deps-debug
 goto :eof
 
 :build-dev
-cmake --preset conan-debug -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --preset conan-debug -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug
 if errorlevel 1 goto :error
-cmake --build build
+cmake --build build/Debug
 if errorlevel 1 goto :error
 goto :eof
 
 :build-release
-cmake --preset conan-release -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --preset conan-release -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 if errorlevel 1 goto :error
-cmake --build build
+cmake --build build/Release
 if errorlevel 1 goto :error
 goto :eof
 
@@ -100,7 +99,7 @@ goto :eof
 
 :run
 call :build
-build\src\game\stabby.exe
+build\Debug\src\game\stabby.exe
 goto :eof
 
 :clean

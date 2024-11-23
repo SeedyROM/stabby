@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 find_package(SDL2 REQUIRED)
 find_package(glm REQUIRED)
+find_package(glad REQUIRED)
 
 add_subdirectory(src/engine)
 add_subdirectory(src/game)
