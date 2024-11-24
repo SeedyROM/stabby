@@ -14,17 +14,17 @@ struct Velocity {
 };
 
 int main(int argc, char *argv[]) {
-  auto window = ste::Window::create("OpenGL Window Example", 800, 600)
-                    .value_or(nullptr); // The value_or is an interesting
-                                        // approach to the optionals
+  auto window = ste::Window::builder()
+                    .setTitle("My Window")
+                    .setSize(1280, 720)
+                    .setVSync(true)
+                    .build()
+                    .value_or(nullptr);
 
   if (!window) {
     std::cerr << "Failed to create window!" << std::endl;
     return -1;
   }
-
-  // Set VSync
-  window->setVSync(true);
 
   // Create a world
   ste::World world;
