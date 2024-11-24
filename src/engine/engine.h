@@ -2,8 +2,9 @@
 
 #include <iostream>
 
-#include "engine/ecs.h"
-#include "engine/game_timer.h"
+#include "engine/rendering/window.h"
+#include "engine/time/game_timer.h"
+#include "engine/world/ecs.h"
 
 namespace ste {
 void test();

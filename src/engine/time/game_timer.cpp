@@ -6,7 +6,7 @@ GameTimer::GameTimer(int targetFPS)
     : targetFPS(targetFPS), targetFrameTime(1.0f / targetFPS),
       lastFrameTime(SDL_GetTicks64()), frameCount(0), fpsTimer(0.0f),
       currentFPS(0.0f), deltaTime(0.0f), pauseState(false), timeScale(1.0f),
-      totalTime(0.0f), logFPSCounter(true) {}
+      totalTime(0.0f), logFPSCounter(false) {}
 
 void GameTimer::update() {
   if (pauseState) {
