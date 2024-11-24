@@ -3,89 +3,63 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 
+namespace ste {
+
 class GameTimer {
 public:
-  GameTimer(int targetFPS = 60)
-      : TARGET_FPS(targetFPS), TARGET_FRAME_TIME(1.0f / targetFPS),
-        previousTime(SDL_GetTicks64()), frameCount(0), fpsTimer(0.0f),
-        currentFPS(0.0f), deltaTime(0.0f), isPaused(false), timeScale(1.0f),
-        totalTime(0.0f), showFPS(true) {}
+  GameTimer(int targetFPS = 60);
 
-  void tick() {
-    if (isPaused) {
-      deltaTime = 0.0f;
-      previousTime = SDL_GetTicks64(); // Update previous time to prevent huge
-                                       // delta after unpause
-      return;
-    }
+  // Public interface - what other code actually needs to know about
+  void update(); // Main update function (renamed from tick for clarity)
+  void limitFrameRate();
 
-    Uint64 currentTime = SDL_GetTicks64();
-    deltaTime = (currentTime - previousTime) / 1000.0f * timeScale;
-
-    // Cap the delta time to prevent large jumps
-    if (deltaTime > 0.1f * timeScale) {
-      deltaTime = 0.1f * timeScale;
-    }
-
-    previousTime = currentTime;
-    totalTime += deltaTime;
-
-    // Update FPS counter
-    frameCount++;
-    fpsTimer += deltaTime / timeScale; // Use unscaled time for FPS calculation
-    if (fpsTimer >= 1.0f && showFPS) {
-      currentFPS = frameCount / fpsTimer;
-      frameCount = 0;
-      fpsTimer = 0.0f;
-      std::cout << "FPS: " << currentFPS << " | Time Scale: " << timeScale
-                << " | Total Time: " << totalTime
-                << " | Paused: " << (isPaused ? "Yes" : "No") << std::endl;
-    }
-  }
-
-  void limitFrameRate() {
-    if (!isPaused) { // Only limit frame rate when not paused
-      float frameTime = (SDL_GetTicks64() - previousTime) / 1000.0f;
-      if (frameTime < TARGET_FRAME_TIME) {
-        SDL_Delay((Uint32)((TARGET_FRAME_TIME - frameTime) * 1000.0f));
-      }
-    }
-  }
-
-  // Getters
+  // Getters - public interface for reading state
   float getDeltaTime() const { return deltaTime; }
   float getFPS() const { return currentFPS; }
-  bool getPaused() const { return isPaused; }
+  bool isPaused() const { return pauseState; } // Renamed for clarity
   float getTimeScale() const { return timeScale; }
   float getTotalTime() const { return totalTime; }
 
-  // Setters
-  void setPaused(bool paused) { isPaused = paused; }
-  void togglePause() { isPaused = !isPaused; }
+  // State modification interface
+  void setPaused(bool paused);
+  void togglePause() { setPaused(!pauseState); }
+  void setTimeScale(float scale);
+  void setShowFPS(bool show) { showFPSCounter = show; }
 
-  void setTimeScale(float scale) {
-    if (scale >= 0.0f) { // Prevent negative time scale
-      timeScale = scale;
-    }
-  }
-
-  void setShowFPS(bool show) { showFPS = show; }
-
-  // Time scale helpers
-  void slowMotion() { timeScale = 0.5f; }
-  void normalSpeed() { timeScale = 1.0f; }
-  void fastForward() { timeScale = 2.0f; }
+  // Preset time modifications
+  void setSlowMotion() { setTimeScale(0.5f); }
+  void setNormalSpeed() { setTimeScale(1.0f); }
+  void setFastForward() { setTimeScale(2.0f); }
 
 private:
-  const int TARGET_FPS;
-  const float TARGET_FRAME_TIME;
-  Uint64 previousTime;
+  // Internal helper methods
+  void updateFPSCounter(float unscaledDeltaTime);
+  void displayFPSStats() const;
+  float calculateDeltaTime() const;
+  void capDeltaTime(float &dt) const;
+
+  // Configuration constants
+  const int targetFPS;
+  const float targetFrameTime; // Renamed for consistency
+
+  // Time tracking
+  Uint64 lastFrameTime; // Renamed for clarity
+  float deltaTime;
+  float totalTime;
+
+  // FPS tracking
   int frameCount;
   float fpsTimer;
   float currentFPS;
-  float deltaTime;
-  bool isPaused;
+  bool showFPSCounter; // Renamed for clarity
+
+  // Time control
+  bool pauseState; // Renamed for clarity
   float timeScale;
-  float totalTime;
-  bool showFPS;
+
+  // Constants
+  static constexpr float MAX_DELTA_TIME = 0.1f;
+  static constexpr float FPS_UPDATE_INTERVAL = 1.0f;
 };
+
+} // namespace ste

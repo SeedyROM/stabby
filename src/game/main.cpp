@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   ste::World world;
 
   // Spawn some entities
-  auto entity1 = world.spawn().with(Position{0, 0}).with(Velocity{1, 1});
+  auto entity1 = world.spawn().with(Position{0, 0}).with(Velocity{0.2, 0.2});
   auto entity2 = world.spawn().with(Position{10, 10}).with(Velocity{-1, 0});
 
   // Add physics system
@@ -77,11 +77,11 @@ int main(int argc, char *argv[]) {
   SDL_GL_SetSwapInterval(1);
 
   // Initialize game timer
-  GameTimer timer(60); // 60 FPS target
+  ste::GameTimer timer(60); // 60 FPS target
 
   bool running = true;
   while (running) {
-    timer.tick();
+    timer.update();
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -93,16 +93,13 @@ int main(int argc, char *argv[]) {
           timer.togglePause();
           break;
         case SDLK_1:
-          timer.slowMotion();
+          timer.setTimeScale(0.5f);
           break;
         case SDLK_2:
-          timer.normalSpeed();
+          timer.setTimeScale(1.0f);
           break;
         case SDLK_3:
-          timer.fastForward();
-          break;
-        case SDLK_f:
-          timer.setShowFPS(!timer.getFPS());
+          timer.setTimeScale(2.0f);
           break;
         }
       }

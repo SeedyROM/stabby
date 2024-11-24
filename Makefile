@@ -3,42 +3,81 @@ REQUIRED_CMDS := conan cmake ninja
 $(foreach cmd,$(REQUIRED_CMDS),\
     $(if $(shell command -v $(cmd) 2> /dev/null),,\
         $(error Please install '$(cmd)'. \
-        	conan: pip install conan, \
-        	cmake: https://cmake.org/download/, \
-        	ninja: pip install ninja)))
+            conan: pip install conan, \
+            cmake: https://cmake.org/download/, \
+            ninja: pip install ninja)))
 
-deps-debug: conanfile.txt
+# Directory markers for dependency tracking
+MARKER_DIR := ./build/.markers
+$(shell mkdir -p $(MARKER_DIR))
+
+# Source file tracking
+SRCS := $(shell find src -name '*.cpp' -o -name '*.hpp')
+CMAKE_FILES := $(shell find . -name 'CMakeLists.txt')
+
+# Dependency markers
+DEPS_DEBUG_MARKER := $(MARKER_DIR)/deps-debug
+DEPS_RELEASE_MARKER := $(MARKER_DIR)/deps-release
+CMAKE_DEBUG_MARKER := $(MARKER_DIR)/cmake-debug
+CMAKE_RELEASE_MARKER := $(MARKER_DIR)/cmake-release
+
+# Executables
+DEBUG_EXE := build/Debug/src/game/stabby
+RELEASE_EXE := build/Release/src/game/stabby
+
+# Dependencies targets
+$(DEPS_DEBUG_MARKER): conanfile.txt
 	conan install . --build=missing -s build_type=Debug
+	@mkdir -p $(MARKER_DIR)
+	@touch $@
 
-deps-release: conanfile.txt
+$(DEPS_RELEASE_MARKER): conanfile.txt
 	conan install . --build=missing -s build_type=Release
+	@mkdir -p $(MARKER_DIR)
+	@touch $@
 
+deps-debug: $(DEPS_DEBUG_MARKER)
+deps-release: $(DEPS_RELEASE_MARKER)
 deps: deps-debug
 
-build-dev: 
+# CMake configuration markers
+$(CMAKE_DEBUG_MARKER): $(DEPS_DEBUG_MARKER) $(CMAKE_FILES)
 	cmake --preset conan-debug -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug
+	@mkdir -p $(MARKER_DIR)
+	@touch $@
+
+$(CMAKE_RELEASE_MARKER): $(DEPS_RELEASE_MARKER) $(CMAKE_FILES)
+	cmake --preset conan-release -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+	@mkdir -p $(MARKER_DIR)
+	@touch $@
+
+# Build targets
+$(DEBUG_EXE): $(CMAKE_DEBUG_MARKER) $(SRCS)
 	cmake --build build/Debug
 
-build-release:
-	cmake --preset conan-release -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+$(RELEASE_EXE): $(CMAKE_RELEASE_MARKER) $(SRCS)
 	cmake --build build/Release
 
+build-dev: $(DEBUG_EXE)
+build-release: $(RELEASE_EXE)
 build: build-dev
 
-run-debug: build-dev
-	./build/Debug/src/game/stabby
+# Run targets
+run-debug: $(DEBUG_EXE)
+	./$(DEBUG_EXE)
 
-run-release: build-release
-	./build/Release/src/game/stabby
+run-release: $(RELEASE_EXE)
+	./$(RELEASE_EXE)
 
 run: run-debug
 
+# Clean target
 clean:
-	rm -rf build
+	rm -rf build $(MARKER_DIR)
 
 play: run
 
-.PHONY: deps-debug deps-release deps build-dev build-release build run play clean
+.PHONY: deps-debug deps-release deps build-dev build-release build run-debug run-release run play clean help
 
 help:
 	@echo "Usage: make [target]"
