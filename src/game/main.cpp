@@ -23,6 +23,10 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  // Set VSync
+  window->setVSync(true);
+
+  // Create a world
   ste::World world;
 
   // Spawn some entities
@@ -40,11 +44,8 @@ int main(int argc, char *argv[]) {
     }
   });
 
-  // Optional: Enable VSync
-  SDL_GL_SetSwapInterval(1);
-
   // Initialize game timer
-  ste::GameTimer timer(60); // 60 FPS target
+  ste::GameTimer timer(60); // 60 FPS target;
 
   bool running = true;
   while (running) {

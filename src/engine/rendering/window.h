@@ -41,6 +41,7 @@ public:
   }
 
   inline void swapBuffers() { SDL_GL_SwapWindow(m_windowPtr); }
+  void setVSync(bool enable);
 
 protected:
   static void initializeOpenGL();

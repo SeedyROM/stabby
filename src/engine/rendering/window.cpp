@@ -74,11 +74,20 @@ std::optional<std::unique_ptr<Window>> Window::create(const std::string &title,
 }
 
 void Window::initializeOpenGL() {
+  // Set the OpenGL context version (4.1)
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+}
+
+void Window::setVSync(bool enable) {
+  if (enable) {
+    SDL_GL_SetSwapInterval(1);
+  } else {
+    SDL_GL_SetSwapInterval(0);
+  }
 }
 
 } // namespace ste
