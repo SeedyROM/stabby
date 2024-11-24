@@ -14,45 +14,12 @@ struct Velocity {
 };
 
 int main(int argc, char *argv[]) {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
-    return -1;
-  }
-
-  // Set OpenGL attributes
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-
-  // Create window with OpenGL context
-  SDL_Window *window = SDL_CreateWindow("SDL2 + OpenGL", SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED, 800, 600,
-                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+  auto window = ste::Window::create("OpenGL Window Example", 800, 600)
+                    .value_or(nullptr); // The value_or is an interesting
+                                        // approach to the optionals
 
   if (!window) {
-    std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
-    SDL_Quit();
-    return -1;
-  }
-
-  // Create OpenGL context
-  SDL_GLContext glContext = SDL_GL_CreateContext(window);
-  if (!glContext) {
-    std::cerr << "OpenGL context creation failed: " << SDL_GetError()
-              << std::endl;
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return -1;
-  }
-
-  // Initialize GLAD
-  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-    std::cerr << "Failed to initialize GLAD" << std::endl;
-    SDL_GL_DeleteContext(glContext);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    std::cerr << "Failed to create window!" << std::endl;
     return -1;
   }
 
@@ -67,7 +34,7 @@ int main(int argc, char *argv[]) {
     auto time = world.getResource<ste::Time>();
     ste::Query<Position, Velocity> query(&world);
 
-    for (auto &&[entity, pos, vel] : query) {
+    for (auto [entity, pos, vel] : query) {
       pos.x += vel.dx * time->deltaSeconds;
       pos.y += vel.dy * time->deltaSeconds;
     }
@@ -109,23 +76,18 @@ int main(int argc, char *argv[]) {
     world.update(timer.getDeltaTime());
 
     // Clear the screen
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(fmod(entity1.get<Position>().x, 1.0f), 0.3f, 0.3f, 1.0f);
+    window->clearColor(fmod(entity1.get<Position>().x, 1.0f),
+                       fmod(entity1.get<Position>().y, 1.0f), 0.2f, 1.0f);
 
     // Render world
     world.render();
 
     // Swap buffers
-    SDL_GL_SwapWindow(window);
+    window->swapBuffers();
 
     // Limit frame rate
     timer.limitFrameRate();
   }
-
-  // Cleanup
-  SDL_GL_DeleteContext(glContext);
-  SDL_DestroyWindow(window);
-  SDL_Quit();
 
   return 0;
 }
