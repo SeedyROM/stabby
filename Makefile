@@ -12,7 +12,7 @@ MARKER_DIR := ./build/.markers
 $(shell mkdir -p $(MARKER_DIR))
 
 # Source file tracking
-SRCS := $(shell find src -name '*.cpp' -o -name '*.hpp')
+SRCS := $(shell find src -name '*.cpp' -o -name '*.h' -o -name '*.hpp')
 CMAKE_FILES := $(shell find . -name 'CMakeLists.txt')
 
 # Dependency markers

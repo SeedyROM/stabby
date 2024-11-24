@@ -24,7 +24,7 @@ public:
   void setPaused(bool paused);
   void togglePause() { setPaused(!pauseState); }
   void setTimeScale(float scale);
-  void setShowFPS(bool show) { showFPSCounter = show; }
+  void setLogFPSStats(bool show) { logFPSCounter = show; }
 
   // Preset time modifications
   void setSlowMotion() { setTimeScale(0.5f); }
@@ -34,7 +34,7 @@ public:
 private:
   // Internal helper methods
   void updateFPSCounter(float unscaledDeltaTime);
-  void displayFPSStats() const;
+  void logFPSStats() const;
   float calculateDeltaTime() const;
   void capDeltaTime(float &dt) const;
 
@@ -51,7 +51,7 @@ private:
   int frameCount;
   float fpsTimer;
   float currentFPS;
-  bool showFPSCounter; // Renamed for clarity
+  bool logFPSCounter; // Renamed for clarity
 
   // Time control
   bool pauseState; // Renamed for clarity
@@ -59,7 +59,7 @@ private:
 
   // Constants
   static constexpr float MAX_DELTA_TIME = 0.1f;
-  static constexpr float FPS_UPDATE_INTERVAL = 1.0f;
+  static constexpr float FPS_UPDATE_INTERVAL = 0.1f;
 };
 
 } // namespace ste

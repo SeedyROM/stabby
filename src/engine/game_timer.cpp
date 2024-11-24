@@ -6,7 +6,7 @@ GameTimer::GameTimer(int targetFPS)
     : targetFPS(targetFPS), targetFrameTime(1.0f / targetFPS),
       lastFrameTime(SDL_GetTicks64()), frameCount(0), fpsTimer(0.0f),
       currentFPS(0.0f), deltaTime(0.0f), pauseState(false), timeScale(1.0f),
-      totalTime(0.0f), showFPSCounter(true) {}
+      totalTime(0.0f), logFPSCounter(true) {}
 
 void GameTimer::update() {
   if (pauseState) {
@@ -39,15 +39,18 @@ void GameTimer::updateFPSCounter(float unscaledDeltaTime) {
   frameCount++;
   fpsTimer += unscaledDeltaTime;
 
-  if (fpsTimer >= FPS_UPDATE_INTERVAL && showFPSCounter) {
+  if (fpsTimer >= FPS_UPDATE_INTERVAL && logFPSCounter) {
     currentFPS = frameCount / fpsTimer;
     frameCount = 0;
     fpsTimer = 0.0f;
-    displayFPSStats();
+
+    if (logFPSCounter) {
+      logFPSStats();
+    }
   }
 }
 
-void GameTimer::displayFPSStats() const {
+void GameTimer::logFPSStats() const {
   std::cout << "FPS: " << currentFPS << " | Time Scale: " << timeScale
             << " | Total Time: " << totalTime
             << " | Paused: " << (pauseState ? "Yes" : "No") << std::endl;
