@@ -35,3 +35,13 @@ if(WIN32)
         version.lib
     )
 endif()
+
+# Release flags
+if(MSVC)
+    # Windows/MSVC
+    string(REPLACE "/O2" "/O2 /Zi" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
+else()
+    # Linux/Mac (gcc/clang)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+endif()
