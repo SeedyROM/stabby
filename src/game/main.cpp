@@ -2,6 +2,8 @@
 
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <engine/engine.h>
 
@@ -26,12 +28,26 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  // MVP matrices
+  glm::mat4 projection = glm::ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 1.0f);
+  glm::mat4 view = glm::mat4(1.0f); // Identity for simple 2D
+  glm::mat4 viewProjection = projection * view;
+
+  // Create a renderer
+  ste::Renderer2D::CreateInfo createInfo;
+  auto renderer = ste::Renderer2D::create(createInfo);
+  if (!renderer) {
+    std::cerr << "Failed to create renderer: " << createInfo.errorMsg
+              << std::endl;
+    return -1;
+  }
+
   // Create a world
   ste::World world;
 
   // Spawn some entities
-  auto entity1 = world.spawn().with(Position{0, 0}).with(Velocity{0.2, 0.2});
-  auto entity2 = world.spawn().with(Position{10, 10}).with(Velocity{-1, 0});
+  auto entity1 = world.spawn().with(Position{0, 0}).with(Velocity{30, 1});
+  auto entity2 = world.spawn().with(Position{100, 10}).with(Velocity{15, 20});
 
   // Add physics system
   world.addSystem("Physics", [](ste::World &world) {
@@ -43,6 +59,18 @@ int main(int argc, char *argv[]) {
       pos.y += vel.dy * time->deltaSeconds;
     }
   });
+
+  world.addSystem(
+      "Rendering",
+      [&renderer, &window](ste::World &world) {
+        ste::Query<Position> query(&world);
+
+        for (auto [entity, pos] : query) {
+          renderer->drawQuad({pos.x, window->getHeight() - pos.y},
+                             {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+        }
+      },
+      0, true);
 
   // Initialize game timer
   ste::GameTimer timer(60); // 60 FPS target;
@@ -77,11 +105,16 @@ int main(int argc, char *argv[]) {
     world.update(timer.getDeltaTime());
 
     // Clear the screen
-    window->clearColor(fmod(entity1.get<Position>().x, 1.0f),
-                       fmod(entity1.get<Position>().y, 1.0f), 0.2f, 1.0f);
+    window->clearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+    // Begin scene
+    renderer->beginScene(viewProjection);
 
     // Render world
     world.render();
+
+    // End scene
+    renderer->endScene();
 
     // Swap buffers
     window->swapBuffers();
