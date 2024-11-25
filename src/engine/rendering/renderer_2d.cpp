@@ -1,0 +1,332 @@
+#include "renderer_2d.h"
+
+#include <array>
+#include <vector>
+
+#include <glad/glad.h>
+#include <glm/gtc/matrix_transform.hpp>
+
+namespace ste {
+
+namespace {
+const char *vertexShaderSource = R"(
+        #version 330 core
+        layout (location = 0) in vec3 a_Position;
+        layout (location = 1) in vec4 a_Color;
+        layout (location = 2) in vec2 a_TexCoord;
+        layout (location = 3) in float a_TexIndex;
+        layout (location = 4) in float a_TilingFactor;
+        
+        uniform mat4 u_ViewProjection;
+        
+        out vec4 v_Color;
+        out vec2 v_TexCoord;
+        out float v_TexIndex;
+        out float v_TilingFactor;
+        
+        void main() {
+            v_Color = a_Color;
+            v_TexCoord = a_TexCoord;
+            v_TexIndex = a_TexIndex;
+            v_TilingFactor = a_TilingFactor;
+            gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
+        }
+    )";
+
+const char *fragmentShaderSource = R"(
+        #version 330 core
+        out vec4 FragColor;
+        
+        in vec4 v_Color;
+        in vec2 v_TexCoord;
+        in float v_TexIndex;
+        in float v_TilingFactor;
+        
+        uniform sampler2D u_Textures[16];
+        
+        void main() {
+            vec4 texColor = v_Color;
+            
+            if (v_TexIndex > -0.5) {
+                int index = int(v_TexIndex);
+                texColor *= texture(u_Textures[index], v_TexCoord * v_TilingFactor);
+            }
+            
+            FragColor = texColor;
+        }
+    )";
+} // namespace
+
+std::optional<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
+  // Create shader
+  Shader::CreateInfo shaderInfo;
+  auto shader = Shader::createFromMemory(vertexShaderSource,
+                                         fragmentShaderSource, shaderInfo);
+  if (!shader) {
+    createInfo.success = false;
+    createInfo.errorMsg = std::move(shaderInfo.errorMsg);
+    return std::nullopt;
+  }
+
+  // Create vertex array
+  uint32_t vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  // Create vertex buffer
+  uint32_t vbo;
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(Vertex), nullptr,
+               GL_DYNAMIC_DRAW);
+
+  // Vertex attributes
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, position));
+
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, color));
+
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, texCoords));
+
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, texIndex));
+
+  glEnableVertexAttribArray(4);
+  glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, tilingFactor));
+
+  // Create and set up index buffer
+  uint32_t ibo;
+  glGenBuffers(1, &ibo);
+
+  std::vector<uint32_t> indices(MAX_INDICES);
+  uint32_t offset = 0;
+  for (uint32_t i = 0; i < MAX_INDICES; i += 6) {
+    indices[i + 0] = offset + 0;
+    indices[i + 1] = offset + 1;
+    indices[i + 2] = offset + 2;
+    indices[i + 3] = offset + 2;
+    indices[i + 4] = offset + 3;
+    indices[i + 5] = offset + 0;
+    offset += 4;
+  }
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t),
+               indices.data(), GL_STATIC_DRAW);
+
+  // Allocate vertex buffer memory
+  auto *vertices = new Vertex[MAX_VERTICES];
+
+  return Renderer2D(std::move(*shader), vao, vbo, ibo, vertices);
+}
+
+Renderer2D::Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo,
+                       uint32_t ibo, Vertex *vertices)
+    : m_shader(std::move(shader)), m_VAO(vao), m_VBO(vbo), m_IBO(ibo),
+      m_vertexBufferBase(vertices) {
+  m_vertexBufferPtr = m_vertexBufferBase;
+}
+
+Renderer2D::~Renderer2D() {
+  glDeleteVertexArrays(1, &m_VAO);
+  glDeleteBuffers(1, &m_VBO);
+  glDeleteBuffers(1, &m_IBO);
+  delete[] m_vertexBufferBase;
+}
+
+Renderer2D::Renderer2D(Renderer2D &&other) noexcept
+    : m_shader(std::move(other.m_shader)), m_VAO(other.m_VAO),
+      m_VBO(other.m_VBO), m_IBO(other.m_IBO), m_indexCount(other.m_indexCount),
+      m_vertexBufferBase(other.m_vertexBufferBase),
+      m_vertexBufferPtr(other.m_vertexBufferPtr),
+      m_viewProjection(other.m_viewProjection), m_stats(other.m_stats) {
+  other.m_VAO = 0;
+  other.m_VBO = 0;
+  other.m_IBO = 0;
+  other.m_vertexBufferBase = nullptr;
+  other.m_vertexBufferPtr = nullptr;
+}
+
+Renderer2D &Renderer2D::operator=(Renderer2D &&other) noexcept {
+  if (this != &other) {
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_IBO);
+    delete[] m_vertexBufferBase;
+
+    m_shader = std::move(other.m_shader);
+    m_VAO = other.m_VAO;
+    m_VBO = other.m_VBO;
+    m_IBO = other.m_IBO;
+    m_indexCount = other.m_indexCount;
+    m_vertexBufferBase = other.m_vertexBufferBase;
+    m_vertexBufferPtr = other.m_vertexBufferPtr;
+    m_viewProjection = other.m_viewProjection;
+    m_stats = other.m_stats;
+
+    other.m_VAO = 0;
+    other.m_VBO = 0;
+    other.m_IBO = 0;
+    other.m_vertexBufferBase = nullptr;
+    other.m_vertexBufferPtr = nullptr;
+  }
+  return *this;
+}
+
+void Renderer2D::beginScene(const glm::mat4 &viewProjection) {
+  m_viewProjection = viewProjection;
+  startBatch();
+}
+
+void Renderer2D::endScene() { flush(); }
+
+void Renderer2D::startBatch() {
+  m_indexCount = 0;
+  m_vertexBufferPtr = m_vertexBufferBase;
+}
+
+void Renderer2D::flush() {
+  if (m_indexCount == 0)
+    return;
+
+  uint32_t dataSize =
+      (uint32_t)((uint8_t *)m_vertexBufferPtr - (uint8_t *)m_vertexBufferBase);
+  glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, dataSize, m_vertexBufferBase);
+
+  m_shader.use();
+  m_shader.setUniform("u_ViewProjection", m_viewProjection);
+
+  glBindVertexArray(m_VAO);
+  glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, nullptr);
+
+  m_stats.drawCalls++;
+}
+
+void Renderer2D::drawQuad(const glm::vec2 &position, const glm::vec2 &size,
+                          const glm::vec4 &color, float rotation) {
+  drawQuad({position.x, position.y, 0.0f}, size, color, rotation);
+}
+
+void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
+                          const glm::vec4 &color, float rotation) {
+  if (m_indexCount >= MAX_INDICES) {
+    flush();
+    startBatch();
+  }
+
+  glm::mat4 transform =
+      glm::translate(glm::mat4(1.0f), position) *
+      glm::rotate(glm::mat4(1.0f), rotation, {0.0f, 0.0f, 1.0f}) *
+      glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
+
+  // Add vertices to buffer
+  m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = color;
+  m_vertexBufferPtr->texCoords = {0.0f, 0.0f};
+  m_vertexBufferPtr->texIndex = -1.0f;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_vertexBufferPtr->position = transform * glm::vec4(0.5f, -0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = color;
+  m_vertexBufferPtr->texCoords = {1.0f, 0.0f};
+  m_vertexBufferPtr->texIndex = -1.0f;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_vertexBufferPtr->position = transform * glm::vec4(0.5f, 0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = color;
+  m_vertexBufferPtr->texCoords = {1.0f, 1.0f};
+  m_vertexBufferPtr->texIndex = -1.0f;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, 0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = color;
+  m_vertexBufferPtr->texCoords = {0.0f, 1.0f};
+  m_vertexBufferPtr->texIndex = -1.0f;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_indexCount += 6;
+  m_stats.quadCount++;
+  m_stats.vertexCount += 4;
+  m_stats.indexCount += 6;
+}
+
+void Renderer2D::drawTexturedQuad(const glm::vec2 &position,
+                                  const TextureInfo &texture,
+                                  const glm::vec2 &size, const glm::vec4 &tint,
+                                  float rotation, const glm::vec4 &texCoords) {
+  drawTexturedQuad({position.x, position.y, 0.0f}, texture, size, tint,
+                   rotation, texCoords);
+}
+
+void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
+                                  const TextureInfo &texture,
+                                  const glm::vec2 &size, const glm::vec4 &tint,
+                                  float rotation, const glm::vec4 &texCoords) {
+  if (m_indexCount >= MAX_INDICES) {
+    flush();
+    startBatch();
+  }
+
+  constexpr float texIndex = 0.0f; // For simplicity, always use texture slot 0
+
+  glm::mat4 transform =
+      glm::translate(glm::mat4(1.0f), position) *
+      glm::rotate(glm::mat4(1.0f), rotation, {0.0f, 0.0f, 1.0f}) *
+      glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
+
+  // Bind texture
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture.id);
+
+  // Add vertices to buffer
+  m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = tint;
+  m_vertexBufferPtr->texCoords = {texCoords.x, texCoords.y};
+  m_vertexBufferPtr->texIndex = texIndex;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_vertexBufferPtr->position = transform * glm::vec4(0.5f, -0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = tint;
+  m_vertexBufferPtr->texCoords = {texCoords.z, texCoords.y};
+  m_vertexBufferPtr->texIndex = texIndex;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_vertexBufferPtr->position = transform * glm::vec4(0.5f, 0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = tint;
+  m_vertexBufferPtr->texCoords = {texCoords.z, texCoords.w};
+  m_vertexBufferPtr->texIndex = texIndex;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, 0.5f, 0.0f, 1.0f);
+  m_vertexBufferPtr->color = tint;
+  m_vertexBufferPtr->texCoords = {texCoords.x, texCoords.w};
+  m_vertexBufferPtr->texIndex = texIndex;
+  m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr++;
+
+  m_indexCount += 6;
+  m_stats.quadCount++;
+  m_stats.vertexCount += 4;
+  m_stats.indexCount += 6;
+}
+
+void Renderer2D::resetStats() { m_stats = Statistics(); }
+
+Renderer2D::Statistics Renderer2D::getStats() const { return m_stats; }
+
+} // namespace ste

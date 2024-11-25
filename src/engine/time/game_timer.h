@@ -10,21 +10,21 @@ public:
   GameTimer(int targetFPS = 60);
 
   // Public interface - what other code actually needs to know about
-  void update(); // Main update function (renamed from tick for clarity)
+  void update();
   void limitFrameRate();
 
   // Getters - public interface for reading state
-  float getDeltaTime() const { return deltaTime; }
-  float getFPS() const { return currentFPS; }
-  bool isPaused() const { return pauseState; } // Renamed for clarity
-  float getTimeScale() const { return timeScale; }
-  float getTotalTime() const { return totalTime; }
+  float getDeltaTime() const { return m_deltaTime; }
+  float getFPS() const { return m_currentFPS; }
+  bool isPaused() const { return m_pauseState; }
+  float getTimeScale() const { return m_timeScale; }
+  float getTotalTime() const { return m_totalTime; }
 
   // State modification interface
   void setPaused(bool paused);
-  void togglePause() { setPaused(!pauseState); }
+  void togglePause() { setPaused(!m_pauseState); }
   void setTimeScale(float scale);
-  void setLogFPSStats(bool show) { logFPSCounter = show; }
+  void setLogFPSStats(bool show) { m_logFPSCounter = show; }
 
   // Preset time modifications
   void setSlowMotion() { setTimeScale(0.5f); }
@@ -39,23 +39,23 @@ private:
   void capDeltaTime(float &dt) const;
 
   // Configuration constants
-  const int targetFPS;
-  const float targetFrameTime; // Renamed for consistency
+  const int m_targetFPS;
+  const float m_targetFrameTime;
 
   // Time tracking
-  Uint64 lastFrameTime; // Renamed for clarity
-  float deltaTime;
-  float totalTime;
+  Uint64 m_lastFrameTime;
+  float m_deltaTime;
+  float m_totalTime;
 
   // FPS tracking
-  int frameCount;
-  float fpsTimer;
-  float currentFPS;
-  bool logFPSCounter; // Renamed for clarity
+  int m_frameCount;
+  float m_fpsTimer;
+  float m_currentFPS;
+  bool m_logFPSCounter;
 
   // Time control
-  bool pauseState; // Renamed for clarity
-  float timeScale;
+  bool m_pauseState;
+  float m_timeScale;
 
   // Constants
   static constexpr float MAX_DELTA_TIME = 0.1f;
