@@ -7,12 +7,24 @@
 
 #include <engine/engine.h>
 
-struct Position {
-  float x, y;
+struct Transform {
+  glm::vec2 position;
+  glm::vec2 scale;
+  float rotation;
 };
 
 struct Velocity {
-  float dx, dy;
+  float dx;
+  float dy;
+};
+
+struct Spinny {
+  float rotation;
+
+  Spinny() {
+    // Create a random float between -speed and speed
+    this->rotation = (rand() % 1000) / 1000.0f * 2.0f;
+  }
 };
 
 int main(int argc, char *argv[]) {
@@ -45,29 +57,29 @@ int main(int argc, char *argv[]) {
   // Create a world
   ste::World world;
 
-  // Spawn some entities
-  auto entity1 = world.spawn().with(Position{0, 0}).with(Velocity{30, 1});
-  auto entity2 = world.spawn().with(Position{100, 10}).with(Velocity{15, 20});
-
   // Add physics system
   world.addSystem("Physics", [](ste::World &world) {
     auto time = world.getResource<ste::Time>();
-    ste::Query<Position, Velocity> query(&world);
+    ste::Query<Transform, Velocity, Spinny> query(&world);
 
-    for (auto [entity, pos, vel] : query) {
-      pos.x += vel.dx * time->deltaSeconds;
-      pos.y += vel.dy * time->deltaSeconds;
+    for (auto [entity, transform, vel, spinny] : query) {
+      transform.position.x += vel.dx * time->deltaSeconds;
+      transform.position.y += vel.dy * time->deltaSeconds;
+      spinny.rotation += 0.01f;
+      transform.rotation += spinny.rotation;
     }
   });
 
   world.addSystem(
       "Rendering",
       [&renderer, &window](ste::World &world) {
-        ste::Query<Position> query(&world);
+        ste::Query<Transform, Spinny> query(&world);
 
-        for (auto [entity, pos] : query) {
-          renderer->drawQuad({pos.x, window->getHeight() - pos.y},
-                             {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+        for (auto [entity, transform, spinny] : query) {
+          renderer->drawQuad({transform.position.x,
+                              window->getHeight() - transform.position.y},
+                             {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f},
+                             spinny.rotation);
         }
       },
       0, true);
@@ -97,6 +109,16 @@ int main(int argc, char *argv[]) {
         case SDLK_3:
           timer.setTimeScale(2.0f);
           break;
+        case SDLK_s:
+          // Spawn 100 entities
+          for (int i = 0; i < 100; i++) {
+            world.spawn()
+                .with(Transform{
+                    {rand() % 1280, rand() % 720}, {100.0f, 100.0f}, 0.0f})
+                // Random velocity
+                .with(Velocity{(rand() % 100) - 50.0f, (rand() % 100) - 50.0f})
+                .with(Spinny{});
+          }
         }
       }
     }
