@@ -12,6 +12,7 @@
 
 #include "engine/async/thread_pool.h"
 #include "engine/rendering/shader.h"
+#include "engine/rendering/texture.h"
 
 namespace ste {
 

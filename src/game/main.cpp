@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <iostream>
 
 #include <SDL2/SDL.h>
@@ -22,8 +23,11 @@ struct Spinny {
   float rotation;
 
   Spinny() {
-    // Create a random float between -speed and speed
-    this->rotation = (rand() % 1000) / 1000.0f * 2.0f;
+    // Create a random float between -0.2 and 0.2
+    rotation =
+        (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f -
+         1.0f) *
+        0.8f;
   }
 };
 
@@ -54,6 +58,33 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  // Create an asset manager
+  ste::AssetManager::CreateInfo assetCreateInfo;
+  auto assetManager = ste::AssetManager::create(assetCreateInfo);
+  if (!assetManager) {
+    std::cerr << "Failed to create asset manager: " << assetCreateInfo.errorMsg
+              << std::endl;
+    return -1;
+  }
+
+  // Load a texture
+  ste::AssetHandle<ste::Texture> textureHandle;
+  try {
+    textureHandle =
+        assetManager->load<ste::Texture>("./assets/textures/albert.png");
+    if (!textureHandle) {
+      std::cerr << "Failed to load texture" << std::endl;
+      return -1;
+    }
+  } catch (const std::exception &e) {
+    std::cerr << "Failed to load texture: " << e.what() << std::endl;
+    return -1;
+  }
+
+  // Enable alpha blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   // Create a world
   ste::World world;
 
@@ -65,27 +96,48 @@ int main(int argc, char *argv[]) {
     for (auto [entity, transform, vel, spinny] : query) {
       transform.position.x += vel.dx * time->deltaSeconds;
       transform.position.y += vel.dy * time->deltaSeconds;
-      spinny.rotation += 0.01f;
-      transform.rotation += spinny.rotation;
+      transform.rotation += spinny.rotation * time->deltaSeconds;
+
+      // Wrap around screen edges
+      if (transform.position.x < 0)
+        transform.position.x = 1280;
+      if (transform.position.x > 1280)
+        transform.position.x = 0;
+      if (transform.position.y < 0)
+        transform.position.y = 720;
+      if (transform.position.y > 720)
+        transform.position.y = 0;
     }
   });
 
   world.addSystem(
       "Rendering",
-      [&renderer, &window](ste::World &world) {
+      [&renderer, &window, &textureHandle](ste::World &world) {
         ste::Query<Transform, Spinny> query(&world);
 
         for (auto [entity, transform, spinny] : query) {
-          renderer->drawQuad({transform.position.x,
-                              window->getHeight() - transform.position.y},
-                             {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f},
-                             spinny.rotation);
+          // Create texture info from the handle
+          ste::Renderer2D::TextureInfo texInfo{textureHandle->getId(),
+                                               textureHandle->getWidth(),
+                                               textureHandle->getHeight()};
+
+          // Draw the textured quad
+          renderer->drawTexturedQuad(
+              {transform.position.x,
+               window->getHeight() -
+                   transform.position.y}, // Position (flip Y for OpenGL)
+              texInfo,
+              transform.scale,          // Size
+              {1.0f, 1.0f, 1.0f, 1.0f}, // Color tint
+              transform.rotation,       // Rotation
+              {0.0f, 0.0f, 1.0f, 1.0f}  // Texture coordinates (full texture)
+          );
         }
       },
       0, true);
 
   // Initialize game timer
-  ste::GameTimer timer(60); // 60 FPS target;
+  ste::GameTimer timer(60);
 
   bool running = true;
   while (running) {
@@ -110,15 +162,22 @@ int main(int argc, char *argv[]) {
           timer.setTimeScale(2.0f);
           break;
         case SDLK_s:
-          // Spawn 100 entities
-          for (int i = 0; i < 100; i++) {
+          // Spawn textured entities
+          for (int i = 0; i < 50; i++) {
+            float size = 64.0f + (rand() % 192); // Random between 64 and 256
             world.spawn()
                 .with(Transform{
-                    {rand() % 1280, rand() % 720}, {100.0f, 100.0f}, 0.0f})
-                // Random velocity
-                .with(Velocity{(rand() % 100) - 50.0f, (rand() % 100) - 50.0f})
+                    {static_cast<float>(rand() % 1280),
+                     static_cast<float>(rand() % 720)}, // Random position
+                    {size, size},                       // Random square size
+                    0.0f})
+                .with(Velocity{
+                    static_cast<float>(rand() % 100 - 50), // Random X velocity
+                    static_cast<float>(rand() % 100 - 50)  // Random Y velocity
+                })
                 .with(Spinny{});
           }
+          break;
         }
       }
     }

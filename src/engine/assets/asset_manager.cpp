@@ -52,11 +52,24 @@ AssetHandle<T> AssetManager::load(const std::string &path) {
   try {
     m_totalAssets++;
 
+    // Load Shader
     if constexpr (std::is_same_v<T, Shader>) {
       Shader::CreateInfo createInfo;
       if (auto shader = Shader::createFromFilesystem(
               path + ".vert", path + ".frag", createInfo)) {
         auto asset = std::make_shared<Shader>(std::move(*shader));
+        m_assets.try_emplace(path, asset, 1);
+        m_loadedAssets++;
+        return AssetHandle<T>(asset);
+      } else {
+        m_totalAssets--;
+        throw std::runtime_error(createInfo.errorMsg);
+      }
+      // Load Texture
+    } else if constexpr (std::is_same_v<T, Texture>) {
+      Texture::CreateInfo createInfo;
+      if (auto texture = Texture::createFromFile(path, createInfo)) {
+        auto asset = std::make_shared<Texture>(std::move(*texture));
         m_assets.try_emplace(path, asset, 1);
         m_loadedAssets++;
         return AssetHandle<T>(asset);
@@ -123,5 +136,11 @@ template std::future<AssetHandle<Shader>>
 AssetManager::loadAsync<Shader>(const std::string &);
 template bool AssetManager::exists<Shader>(const std::string &) const;
 template void AssetManager::remove<Shader>(const std::string &);
+
+template AssetHandle<Texture> AssetManager::load<Texture>(const std::string &);
+template std::future<AssetHandle<Texture>>
+AssetManager::loadAsync<Texture>(const std::string &);
+template bool AssetManager::exists<Texture>(const std::string &) const;
+template void AssetManager::remove<Texture>(const std::string &);
 
 } // namespace ste
