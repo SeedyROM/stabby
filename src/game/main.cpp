@@ -110,16 +110,17 @@ int main(int argc, char *argv[]) {
     }
   });
 
+  // Create texture info from the handle
+  ste::Renderer2D::TextureInfo texInfo{textureHandle->getId(),
+                                       textureHandle->getWidth(),
+                                       textureHandle->getHeight()};
+
   world.addSystem(
       "Rendering",
-      [&renderer, &window, &textureHandle](ste::World &world) {
+      [&renderer, &window, &texInfo](ste::World &world) {
         ste::Query<Transform, Spinny> query(&world);
 
         for (auto [entity, transform, spinny] : query) {
-          // Create texture info from the handle
-          ste::Renderer2D::TextureInfo texInfo{textureHandle->getId(),
-                                               textureHandle->getWidth(),
-                                               textureHandle->getHeight()};
 
           // Draw the textured quad
           renderer->drawTexturedQuad(
