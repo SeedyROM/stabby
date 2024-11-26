@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(BUILD_SHARED_LIBS OFF)
 set(SDL2_STATIC ON)
 find_package(SDL2 REQUIRED)
+find_package(SDL2_image REQUIRED)
 find_package(glm REQUIRED)
 find_package(glad REQUIRED)
 
