@@ -81,11 +81,8 @@ private:
   static constexpr uint32_t MAX_VERTICES = MAX_QUADS * 4;
   static constexpr uint32_t MAX_INDICES = MAX_QUADS * 6;
   static constexpr uint32_t MAX_TEXTURE_SLOTS = 16;
-
-  // New constants for ring buffer
-  static constexpr uint32_t BUFFER_COUNT = 3; // Triple buffering
-  static constexpr uint64_t MAX_SYNC_WAIT_NANOS =
-      1000000000; // 1 second timeout
+  static constexpr uint32_t BUFFER_COUNT = 3;
+  static constexpr uint64_t MAX_SYNC_WAIT_NANOS = 1000000000;
 
   Shader m_shader;
   uint32_t m_VAO{0};
@@ -101,7 +98,7 @@ private:
 
   uint32_t m_currentBuffer{0};
   GLsync m_fences[BUFFER_COUNT]{nullptr};
-  uint32_t m_lastTextureId{0}; // Cache for texture binding optimization
+  uint32_t m_lastTextureId{0};
 
   explicit Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo, uint32_t ibo,
                       Vertex *vertices);
