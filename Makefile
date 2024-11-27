@@ -16,18 +16,18 @@ SRCS := $(shell find src -name '*.cpp' -o -name '*.h' -o -name '*.hpp')
 CMAKE_FILES := $(shell find . -name 'CMakeLists.txt')
 
 # Dependency markers
-DEPS_DEBUG_MARKER := $(MARKER_DIR)/deps-debug
+DEPS_DEBUG_MARKER := $(MARKER_DIR)/deps-relwithdebinfo
 DEPS_RELEASE_MARKER := $(MARKER_DIR)/deps-release
 CMAKE_DEBUG_MARKER := $(MARKER_DIR)/cmake-debug
 CMAKE_RELEASE_MARKER := $(MARKER_DIR)/cmake-release
 
 # Executables
-DEBUG_EXE := build/Debug/src/game/stabby
+DEBUG_EXE := build/RelWithDebInfo/src/game/stabby
 RELEASE_EXE := build/Release/src/game/stabby
 
 # Dependencies targets
 $(DEPS_DEBUG_MARKER): conanfile.txt
-	conan install . --build=missing -s build_type=Debug
+	conan install . --build=missing -s build_type=RelWithDebInfo
 	@mkdir -p $(MARKER_DIR)
 	@touch $@
 
@@ -42,7 +42,7 @@ deps: deps-debug
 
 # CMake configuration markers
 $(CMAKE_DEBUG_MARKER): $(DEPS_DEBUG_MARKER) $(CMAKE_FILES)
-	cmake --preset conan-debug -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug
+	cmake --preset conan-relwithdebinfo -S . -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 	@mkdir -p $(MARKER_DIR)
 	@touch $@
 
@@ -53,7 +53,7 @@ $(CMAKE_RELEASE_MARKER): $(DEPS_RELEASE_MARKER) $(CMAKE_FILES)
 
 # Build targets
 $(DEBUG_EXE): $(CMAKE_DEBUG_MARKER) $(SRCS)
-	cmake --build build/Debug
+	cmake --build build/RelWithDebInfo
 
 $(RELEASE_EXE): $(CMAKE_RELEASE_MARKER) $(SRCS)
 	cmake --build build/Release
