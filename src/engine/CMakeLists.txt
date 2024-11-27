@@ -36,3 +36,7 @@ if(WIN32)
         version.lib
     )
 endif()
+
+# Assets path
+target_compile_definitions(engine PUBLIC
+    ASSET_PATH="${PROJECT_SOURCE_DIR}/assets")

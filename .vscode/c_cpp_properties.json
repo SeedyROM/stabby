@@ -3,7 +3,7 @@
     {
       "name": "Mac",
       "includePath": ["${workspaceFolder}/**", "~/.conan2/**"],
-      "defines": [],
+      "defines": ["ASSET_PATH=\"${workspaceFolder}/assets\""],
       "macFrameworkPath": [
         "/Library/Developer/CommandLineTools/SDKs/MacOSX13.sdk/System/Library/Frameworks"
       ],

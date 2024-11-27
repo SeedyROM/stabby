@@ -70,8 +70,8 @@ int main(int argc, char *argv[]) {
   // Load a texture
   ste::AssetHandle<ste::Texture> textureHandle;
   try {
-    textureHandle =
-        assetManager->load<ste::Texture>("./assets/textures/albert.png");
+    textureHandle = assetManager->load<ste::Texture>(
+        ste::getAssetPath("textures/albert.png"));
     if (!textureHandle) {
       std::cerr << "Failed to load texture" << std::endl;
       return -1;
