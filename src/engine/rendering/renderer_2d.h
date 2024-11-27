@@ -80,8 +80,12 @@ private:
   static constexpr uint32_t MAX_QUADS = 10000;
   static constexpr uint32_t MAX_VERTICES = MAX_QUADS * 4;
   static constexpr uint32_t MAX_INDICES = MAX_QUADS * 6;
-  static constexpr uint32_t MAX_TEXTURE_SLOTS =
-      16; // Most GPUs support at least 32 texture slots
+  static constexpr uint32_t MAX_TEXTURE_SLOTS = 16;
+
+  // New constants for ring buffer
+  static constexpr uint32_t BUFFER_COUNT = 3; // Triple buffering
+  static constexpr uint64_t MAX_SYNC_WAIT_NANOS =
+      1000000000; // 1 second timeout
 
   Shader m_shader;
   uint32_t m_VAO{0};
@@ -95,10 +99,15 @@ private:
   glm::mat4 m_viewProjection{1.0f};
   Statistics m_stats{};
 
+  uint32_t m_currentBuffer{0};
+  GLsync m_fences[BUFFER_COUNT]{nullptr};
+  uint32_t m_lastTextureId{0}; // Cache for texture binding optimization
+
   explicit Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo, uint32_t ibo,
                       Vertex *vertices);
   void flush();
   void startBatch();
+  void waitForBuffer(uint32_t bufferIndex);
 };
 
 } // namespace ste
