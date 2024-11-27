@@ -89,42 +89,66 @@ public:
 // Component storage template
 template <Component T> class ComponentArray : public IComponentArray {
 public:
+  // Use a sparse set implementation for better cache locality
   void insert(size_t entityId, T component) {
-    if (entityId >= components.size()) {
-      components.resize(entityId + 1);
-      occupied.resize(entityId + 1);
+    if (entityId >= sparse.size()) {
+      sparse.resize(entityId + 1, -1);
     }
-    components[entityId] = component;
-    if (!occupied[entityId]) {
-      occupied[entityId] = true;
-      count++;
+
+    // Check if entity already has component
+    if (sparse[entityId] != -1) {
+      dense_components[sparse[entityId]] = component;
+      return;
     }
+
+    // Add new component
+    sparse[entityId] = dense_components.size();
+    dense_components.push_back(component);
+    dense_entities.push_back(entityId);
   }
 
   T &get(size_t entityId) {
-    if (!occupied[entityId]) {
+    if (entityId >= sparse.size() || sparse[entityId] == -1) {
       throw std::runtime_error("Component not found");
     }
-    return components[entityId];
+    return dense_components[sparse[entityId]];
   }
 
   bool has(size_t entityId) const {
-    return entityId < occupied.size() && occupied[entityId];
+    return entityId < sparse.size() && sparse[entityId] != -1;
   }
 
   void remove(size_t entityId) override {
-    if (entityId < occupied.size() && occupied[entityId]) {
-      occupied[entityId] = false;
-      count--;
+    if (entityId >= sparse.size() || sparse[entityId] == -1) {
+      return;
     }
+
+    // Swap and pop for O(1) removal
+    size_t dense_idx = sparse[entityId];
+    size_t last_idx = dense_components.size() - 1;
+
+    if (dense_idx != last_idx) {
+      dense_components[dense_idx] = dense_components[last_idx];
+      dense_entities[dense_idx] = dense_entities[last_idx];
+      sparse[dense_entities[dense_idx]] = dense_idx;
+    }
+
+    sparse[entityId] = -1;
+    dense_components.pop_back();
+    dense_entities.pop_back();
   }
 
-  size_t size() const override { return count; }
+  size_t size() const override { return dense_components.size(); }
+
+  // Iterator access for systems
+  auto begin() { return dense_components.begin(); }
+  auto end() { return dense_components.end(); }
+  const auto &entities() const { return dense_entities; }
 
 private:
-  std::vector<T> components;
-  std::vector<bool> occupied;
-  size_t count = 0;
+  std::vector<T> dense_components;    // Packed array of components
+  std::vector<size_t> dense_entities; // Corresponding entity IDs
+  std::vector<int> sparse;            // Entity ID to dense index mapping
 };
 
 // World class
@@ -207,22 +231,72 @@ template <Component T> bool Entity::has() const {
 // Query class (needs full World definition)
 template <typename... Components>
 requires(Component<Components> &&...) class Query {
+  friend class World; // Add friendship to access Entity constructor
 public:
   Query(World *world) : world(world) {
-    std::bitset<MAX_COMPONENTS> requiredComponents;
-    (requiredComponents.set(ComponentId::get<Components>()), ...);
+    // Find the component array with the smallest size for optimal iteration
+    size_t minSize = std::numeric_limits<size_t>::max();
+    size_t smallestComponentId = 0;
 
-    for (size_t i = 0; i < world->activeEntities.size(); i++) {
-      if (!world->activeEntities[i])
-        continue;
+    // Get all component IDs and find the smallest array
+    std::array<size_t, sizeof...(Components)> componentIds = {
+        ComponentId::get<Components>()...};
 
-      bool hasAll = true;
-      ((hasAll = hasAll && world->hasComponent<Components>(i)), ...);
-
-      if (hasAll) {
-        matches.push_back(Entity(world, i));
+    for (size_t componentId : componentIds) {
+      auto it = world->components.find(componentId);
+      if (it != world->components.end()) {
+        size_t currentSize = it->second->size();
+        if (currentSize < minSize) {
+          minSize = currentSize;
+          smallestComponentId = componentId;
+        }
+      } else {
+        // If any required component type doesn't exist, we can return early
+        matches.clear();
+        return;
       }
     }
+
+    // Get the smallest component array for base iteration
+    auto &baseArray = world->components[smallestComponentId];
+    auto *typedBaseArray = static_cast<
+        ComponentArray<std::tuple_element_t<0, std::tuple<Components...>>> *>(
+        baseArray.get());
+
+    // Reserve space for efficiency
+    matches.reserve(minSize);
+
+    // Iterate through the entities that have the smallest component array
+    const auto &baseEntities = typedBaseArray->entities();
+    for (size_t entityId : baseEntities) {
+      if (!world->activeEntities[entityId]) {
+        continue;
+      }
+
+      // Check if entity has all other required components
+      bool hasAll = true;
+
+      // Using fold expression to check all components
+      ([&] {
+        auto componentId = ComponentId::get<Components>();
+        if (componentId != smallestComponentId) {
+          hasAll = hasAll && world->hasComponent<Components>(entityId);
+        }
+        return hasAll;
+      }() &&
+       ...);
+
+      if (hasAll) {
+        // Use push_back instead of emplace_back since Entity constructor is
+        // private
+        matches.push_back(Entity(world, entityId));
+      }
+    }
+
+    // Sort matches by entity ID for consistent iteration order
+    std::sort(
+        matches.begin(), matches.end(),
+        [](const Entity &a, const Entity &b) { return a.getId() < b.getId(); });
   }
 
   class Iterator {
