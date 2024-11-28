@@ -62,7 +62,7 @@ goto :eof
 
 :deps-debug
 if exist conanfile.txt (
-    conan install . --build=missing -s build_type=Debug
+    conan install . --build=missing -s build_type=RelWithDebInfo
 ) else (
     echo conanfile.txt not found
     exit /b 1
@@ -83,9 +83,9 @@ call :deps-debug
 goto :eof
 
 :build-dev
-cmake --preset conan-debug -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --preset conan-relwithdebinfo -S . -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 if errorlevel 1 goto :error
-cmake --build build/Debug
+cmake --build build/RelWithDebInfo
 if errorlevel 1 goto :error
 goto :eof
 
@@ -100,9 +100,18 @@ goto :eof
 call :build-dev
 goto :eof
 
+:run-dev
+call :build-dev
+build\RelWithDebInfo\src\game\stabby.exe
+goto :eof
+
+:run-release
+call :build-release
+build\Release\src\game\stabby.exe
+goto :eof
+
 :run
-call :build
-build\Debug\src\game\stabby.exe
+call :run-dev
 goto :eof
 
 :play
