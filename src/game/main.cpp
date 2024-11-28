@@ -31,6 +31,26 @@ struct Spinny {
   }
 };
 
+class AudioProcessor {
+public:
+  void processAudio(const ste::AudioConfig &config,
+                    ste::AudioBuffer<float> buffer) {
+    static float phase = 0.0f;
+    const float frequency = 440.0f;
+    const float amplitude = 0.5f;
+
+    for (size_t frame = 0; frame < buffer.numFrames; frame++) {
+      float sample = std::sin(phase) * amplitude;
+      for (size_t channel = 0; channel < buffer.numChannels; channel++) {
+        buffer(frame, channel) = sample;
+      }
+      phase += frequency * 2.0f * M_PI / config.sampleRate;
+      if (phase > 2.0f * M_PI)
+        phase -= 2.0f * M_PI;
+    }
+  }
+};
+
 int main(int argc, char *argv[]) {
   auto window = ste::Window::builder()
                     .setTitle("My Window")
@@ -44,16 +64,28 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  AudioProcessor processor;
+
+  // Setup the audio system
+  auto audio =
+      ste::AudioSystem::create(&processor, &AudioProcessor::processAudio);
+  if (!audio) {
+    std::cerr << "Failed to create audio system\n";
+    return -1;
+  }
+
+  audio->resume();
+
   // MVP matrices
   glm::mat4 projection = glm::ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 1.0f);
   glm::mat4 view = glm::mat4(1.0f); // Identity for simple 2D
   glm::mat4 viewProjection = projection * view;
 
   // Create a renderer
-  ste::Renderer2D::CreateInfo createInfo;
-  auto renderer = ste::Renderer2D::create(createInfo);
+  ste::Renderer2D::CreateInfo rendererCreateInfo;
+  auto renderer = ste::Renderer2D::create(rendererCreateInfo);
   if (!renderer) {
-    std::cerr << "Failed to create renderer: " << createInfo.errorMsg
+    std::cerr << "Failed to create renderer: " << rendererCreateInfo.errorMsg
               << std::endl;
     return -1;
   }
