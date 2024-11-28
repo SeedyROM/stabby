@@ -8,6 +8,7 @@
 
 #include <engine/engine.h>
 
+// Components to be used in the ECS
 struct Transform {
   glm::vec2 position;
   glm::vec2 scale;
@@ -31,6 +32,7 @@ struct Spinny {
   }
 };
 
+// Audio processor to generate a simple stereo sine wave
 class AudioProcessor {
 public:
   void processAudio(const ste::AudioConfig &config,
@@ -55,6 +57,7 @@ public:
 };
 
 int main(int argc, char *argv[]) {
+  // Create a window with the window builder.
   auto window = ste::Window::builder()
                     .setTitle("My Window")
                     .setSize(1280, 720)
@@ -67,9 +70,8 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  AudioProcessor processor;
-
   // Setup the audio system
+  AudioProcessor processor;
   auto audio =
       ste::AudioSystem::create(&processor, &AudioProcessor::processAudio);
   if (!audio) {
