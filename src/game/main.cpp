@@ -35,16 +35,19 @@ class AudioProcessor {
 public:
   void processAudio(const ste::AudioConfig &config,
                     ste::AudioBuffer<float> buffer) {
+
     static float phase = 0.0f;
-    const float frequency = 440.0f;
+    const float freqLeft = 440.0f;
+    const float freqRight = 880.0f;
     const float amplitude = 0.5f;
 
     for (size_t frame = 0; frame < buffer.numFrames; frame++) {
-      float sample = std::sin(phase) * amplitude;
-      for (size_t channel = 0; channel < buffer.numChannels; channel++) {
-        buffer(frame, channel) = sample;
-      }
-      phase += frequency * 2.0f * M_PI / config.sampleRate;
+      // Left channel at base frequency
+      buffer(frame, 0) = std::sin(phase) * amplitude;
+      // Right channel at double frequency (notice we multiply phase by 2)
+      buffer(frame, 1) = std::sin(phase * 2.0f) * amplitude;
+
+      phase += freqLeft * 2.0f * M_PI / config.sampleRate;
       if (phase > 2.0f * M_PI)
         phase -= 2.0f * M_PI;
     }
@@ -73,7 +76,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "Failed to create audio system\n";
     return -1;
   }
-
+  // Start the audio system
   audio->resume();
 
   // MVP matrices

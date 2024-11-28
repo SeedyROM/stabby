@@ -1,5 +1,4 @@
 #include "audio.h"
-#include <iostream>
 
 namespace ste {
 
@@ -94,9 +93,6 @@ AudioSystem &AudioSystem::operator=(AudioSystem &&other) noexcept {
 
 void AudioSystem::processAudio(Uint8 *stream, int len) {
   if (m_audioCallback && !m_paused) {
-    // Clear the buffer first
-    SDL_memset(stream, 0, len);
-
     // Calculate frames based on output format (assuming Float32)
     size_t numFrames = len / (sizeof(float) * m_config.numOutputChannels);
 
