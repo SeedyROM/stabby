@@ -9,8 +9,8 @@ A modern 2D hack 'n' slash game built with a custom C++ game engine. This projec
 - [x] Separate engine from game code via CMake
 - [x] Setup Conan
 - [x] Initial project setup with Conan and SDL2/GLAD/GLM
-- [x] Create reproducible builds with Makefile/make.bat script code
-- [x] Import modified ECS from C# prototype
+- [x] Create reproducible builds with `Makefile`/`make.bat` script code
+- [x] Import/translate modified ECS from C# prototype
 - [x] Create simple sprite renderer using OpenGL
 - [x] Refactor/move C# ECS implementation into C++23
 - [x] Resource loading
@@ -24,7 +24,7 @@ A modern 2D hack 'n' slash game built with a custom C++ game engine. This projec
 
 ## Engine Features
 
-The game is built on a custom C++ engine (STE - Simple Template Engine) designed for high-performance 2D games.
+The game is built on a custom C++ engine (STE - Stabby Engine) designed for high-performance 2D/3D(?) games.
 
 ### Core Systems
 
