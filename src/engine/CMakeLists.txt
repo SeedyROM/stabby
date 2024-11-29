@@ -9,6 +9,7 @@ target_link_libraries(engine PUBLIC SDL2::SDL2-static)  # Use SDL2-static instea
 target_link_libraries(engine PUBLIC SDL2_image::SDL2_image)
 target_link_libraries(engine PUBLIC glm::glm)
 target_link_libraries(engine PUBLIC glad::glad)
+target_link_libraries(engine PUBLIC vorbis::vorbis)
 
 # For macOS
 if(APPLE)
