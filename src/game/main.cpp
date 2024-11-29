@@ -32,30 +32,6 @@ struct Spinny {
   }
 };
 
-// Audio processor to generate a simple stereo sine wave
-class AudioProcessor {
-public:
-  void processAudio(const ste::AudioConfig &config,
-                    ste::AudioBuffer<float> buffer) {
-
-    static float phase = 0.0f;
-    const float freqLeft = 440.0f;
-    const float freqRight = 880.0f;
-    const float amplitude = 0.005f;
-
-    for (size_t frame = 0; frame < buffer.numFrames; frame++) {
-      // Left channel at base frequency
-      buffer(frame, 0) = std::sin(phase) * amplitude;
-      // Right channel at double frequency (notice we multiply phase by 2)
-      buffer(frame, 1) = std::sin(phase * 2.0f) * amplitude;
-
-      phase += freqLeft * 2.0f * M_PI / config.sampleRate;
-      if (phase > 2.0f * M_PI)
-        phase -= 2.0f * M_PI;
-    }
-  }
-};
-
 int main(int argc, char *argv[]) {
   // Create a window with the window builder.
   auto window = ste::Window::builder()
@@ -71,15 +47,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Setup the audio system
-  AudioProcessor processor;
-  auto audio =
-      ste::AudioSystem::create(&processor, &AudioProcessor::processAudio);
-  if (!audio) {
-    std::cerr << "Failed to create audio system\n";
-    return -1;
-  }
-  // Start the audio system
-  audio->resume();
+  ste::AudioManager audio;
+
+  auto &audioEngine = audio.getEngine();
 
   // Create a camera
   ste::Camera2D camera(window->getWidth(), window->getHeight());
@@ -179,6 +149,8 @@ int main(int argc, char *argv[]) {
   // Initialize game timer
   ste::GameTimer timer(60);
 
+  audioEngine.playMusic("./assets/music/paniots-nine.wav", true);
+
   bool running = true;
   while (running) {
     timer.update();
@@ -191,14 +163,19 @@ int main(int argc, char *argv[]) {
         switch (event.key.keysym.sym) {
         case SDLK_1:
           timer.setTimeScale(0.5f);
+          audioEngine.setSpeed(0.5f);
           break;
         case SDLK_2:
           timer.setTimeScale(1.0f);
+          audioEngine.setSpeed(1.0f);
           break;
         case SDLK_3:
           timer.setTimeScale(2.0f);
+          audioEngine.setSpeed(2.0f);
           break;
         case SDLK_SPACE:
+          audioEngine.playSound("./assets/sfx/real-trap-shit.wav");
+
           // Spawn textured entities
           for (int i = 0; i < 50; i++) {
             float size = 64.0f + (rand() % 192); // Random between 64 and 256
