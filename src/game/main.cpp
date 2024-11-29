@@ -164,14 +164,17 @@ int main(int argc, char *argv[]) {
         case SDLK_1:
           timer.setTimeScale(0.5f);
           audioEngine.setSpeed(0.5f);
+          audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_2:
           timer.setTimeScale(1.0f);
           audioEngine.setSpeed(1.0f);
+          audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_3:
           timer.setTimeScale(2.0f);
           audioEngine.setSpeed(2.0f);
+          audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_SPACE:
           audioEngine.playSound("./assets/sfx/real-trap-shit.wav");

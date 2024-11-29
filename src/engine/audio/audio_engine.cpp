@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <iostream>
 
 #include <SDL2/SDL.h>
 
@@ -204,6 +205,7 @@ void AudioEngine::playSound(const std::string &path, float m_volume) {
       m_commandQueue.pushPlay(file, m_volume, channel);
     }
   } catch (const AudioFileException &e) {
+    std::cerr << "Failed to load sound file: " << e.what() << std::endl;
     // Handle or propagate error
     // Could log error or throw depending on your error handling strategy
   }
@@ -220,6 +222,8 @@ void AudioEngine::playMusic(const std::string &path, bool loop) {
     // Queue the new music
     m_commandQueue.pushPlay(file, 1.0f, 0); // Channel 0 reserved for music
   } catch (const AudioFileException &e) {
+    std::cerr << "Failed to load sound file: " << e.what() << std::endl;
+
     // Handle or propagate error
   }
 }
