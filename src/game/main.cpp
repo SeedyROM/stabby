@@ -41,7 +41,7 @@ public:
     static float phase = 0.0f;
     const float freqLeft = 440.0f;
     const float freqRight = 880.0f;
-    const float amplitude = 0.5f;
+    const float amplitude = 0.005f;
 
     for (size_t frame = 0; frame < buffer.numFrames; frame++) {
       // Left channel at base frequency
@@ -59,7 +59,7 @@ public:
 int main(int argc, char *argv[]) {
   // Create a window with the window builder.
   auto window = ste::Window::builder()
-                    .setTitle("My Window")
+                    .setTitle("Stabby : v0.0.1")
                     .setSize(1280, 720)
                     .setVSync(true)
                     .build()
@@ -81,10 +81,12 @@ int main(int argc, char *argv[]) {
   // Start the audio system
   audio->resume();
 
-  // MVP matrices
-  glm::mat4 projection = glm::ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 1.0f);
-  glm::mat4 view = glm::mat4(1.0f); // Identity for simple 2D
-  glm::mat4 viewProjection = projection * view;
+  // Create a camera
+  ste::Camera2D camera(window->getWidth(), window->getHeight());
+
+  const float CAMERA_SPEED =
+      500.0f; // Adjust this to control camera acceleration
+  bool keys[SDL_NUM_SCANCODES] = {false};
 
   // Create a renderer
   ste::Renderer2D::CreateInfo rendererCreateInfo;
@@ -187,9 +189,6 @@ int main(int argc, char *argv[]) {
         running = false;
       } else if (event.type == SDL_KEYDOWN) {
         switch (event.key.keysym.sym) {
-        case SDLK_SPACE:
-          timer.togglePause();
-          break;
         case SDLK_1:
           timer.setTimeScale(0.5f);
           break;
@@ -199,7 +198,7 @@ int main(int argc, char *argv[]) {
         case SDLK_3:
           timer.setTimeScale(2.0f);
           break;
-        case SDLK_s:
+        case SDLK_SPACE:
           // Spawn textured entities
           for (int i = 0; i < 50; i++) {
             float size = 64.0f + (rand() % 192); // Random between 64 and 256
@@ -217,8 +216,43 @@ int main(int argc, char *argv[]) {
           }
           break;
         }
+
+        keys[event.key.keysym.scancode] = true;
+      }
+      if (event.type == SDL_KEYUP) {
+        keys[event.key.keysym.scancode] = false;
       }
     }
+
+    // Update camera movement based on held keys
+    glm::vec2 moveDir(0.0f, 0.0f);
+    if (keys[SDL_SCANCODE_W])
+      moveDir.y += 1.0f;
+    if (keys[SDL_SCANCODE_S])
+      moveDir.y -= 1.0f;
+    if (keys[SDL_SCANCODE_A])
+      moveDir.x -= 1.0f;
+    if (keys[SDL_SCANCODE_D])
+      moveDir.x += 1.0f;
+
+    // Zoom control
+    if (keys[SDL_SCANCODE_Q]) {
+      camera.addZoom(-0.1f * timer.getDeltaTime());
+    }
+    if (keys[SDL_SCANCODE_E]) {
+      camera.addZoom(0.1f * timer.getDeltaTime());
+    }
+
+    // Normalize diagonal movement
+    if (glm::length(moveDir) > 0.0f) {
+      moveDir = glm::normalize(moveDir);
+    }
+
+    // Add velocity based on input
+    camera.addVelocity(moveDir * CAMERA_SPEED * timer.getDeltaTime());
+
+    // Update the camera
+    camera.update(timer.getDeltaTime());
 
     // Update world with actual delta time
     world.update(timer.getDeltaTime());
@@ -227,7 +261,7 @@ int main(int argc, char *argv[]) {
     window->clearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
     // Begin scene
-    renderer->beginScene(viewProjection);
+    renderer->beginScene(camera.getViewProjectionMatrix());
 
     // Render world
     world.render();
