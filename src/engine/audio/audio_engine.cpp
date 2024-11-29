@@ -37,10 +37,12 @@ void AudioChannel::mix(float *buffer, size_t frames) {
   const float *sourceData = currentFile->data();
   const size_t sourceSize = currentFile->size();
   const size_t numChannels = currentFile->getChannels();
+  const float effectivePitch =
+      pitch * playbackSpeed; // Combine pitch with speed
 
   for (size_t frame = 0; frame < frames; ++frame) {
-    // Calculate the source position with pitch
-    float sourcePos = static_cast<float>(position) * pitch;
+    // Calculate the source position with combined pitch and speed
+    float sourcePos = static_cast<float>(position) * effectivePitch;
 
     // Get interpolated sample(s)
     float sample = 0.0f;
@@ -61,7 +63,7 @@ void AudioChannel::mix(float *buffer, size_t frames) {
     buffer[frame * 2] += sample * leftGain;
     buffer[frame * 2 + 1] += sample * rightGain;
 
-    // Update position
+    // Update position with speed-adjusted increment
     position += 1;
     if (position >= sourceSize / numChannels) {
       if (currentFile->isLooping()) {
@@ -308,38 +310,43 @@ void AudioEngine::processCommands() {
 }
 
 void AudioEngine::audioCallback(float *buffer, size_t frames) {
-  // Process any pending commands
   processCommands();
-
-  // Clear the output buffer
   std::memset(buffer, 0, frames * DEFAULT_CHANNELS * sizeof(float));
 
   size_t activeChannels = 0;
+  const float framesPerSecond = static_cast<float>(DEFAULT_SAMPLE_RATE);
+  float deltaTime = frames / framesPerSecond;
 
-  // Mix all active channels directly into the output buffer
+  // Calculate shutdown ramp if needed
+  float shutdownRamp = 1.0f;
+  if (shutdownRequested) {
+    shutdownRamp =
+        std::max(0.0f, shutdownRampRemaining / SHUTDOWN_RAMP_DURATION);
+    shutdownRampRemaining -= deltaTime;
+  }
+
+  // Mix all active channels with speed control
   for (auto &channel : channels) {
     if (channel.isActive()) {
-      channel.update(static_cast<float>(frames) / DEFAULT_SAMPLE_RATE);
+      // Update channel with speed-adjusted time
+      channel.update(deltaTime * gameSpeed);
+      channel.setPlaybackSpeed(gameSpeed);
       channel.mix(buffer, frames);
       activeChannels++;
     }
   }
 
-  // If we have active channels, normalize and apply master volume in a single
-  // pass
+  // Normalize and apply master volume
   if (activeChannels > 0) {
-    // First frame pass: find peak amplitude
     float peakAmplitude = 0.0f;
     for (size_t i = 0; i < frames * DEFAULT_CHANNELS; ++i) {
       peakAmplitude = std::max(peakAmplitude, std::abs(buffer[i]));
     }
 
-    // Calculate normalization factor
     float normalizationFactor =
         (peakAmplitude > 1.0f) ? 1.0f / peakAmplitude : 1.0f;
-    float finalGain = normalizationFactor * masterVolume;
+    float finalGain = normalizationFactor * masterVolume * shutdownRamp;
 
-    // Apply normalization, master volume, and safety limiting in one pass
     for (size_t i = 0; i < frames * DEFAULT_CHANNELS; ++i) {
       buffer[i] = std::clamp(buffer[i] * finalGain, -1.0f, 1.0f);
     }

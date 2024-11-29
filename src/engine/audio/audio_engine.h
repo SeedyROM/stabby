@@ -26,6 +26,7 @@ public:
   [[nodiscard]] bool isActive() const {
     return active && currentFile != nullptr;
   }
+  void setPlaybackSpeed(float speed) { playbackSpeed = speed; }
 
 private:
   std::shared_ptr<AudioFile> currentFile;
@@ -38,6 +39,7 @@ private:
   float positionX = 0.0f;
   float positionY = 0.0f;
   bool active = false;
+  float playbackSpeed = 1.0f;
 
   // Utility functions
   [[nodiscard]] float calculatePanLeft() const;
@@ -67,10 +69,17 @@ public:
   void setChannelPosition(int channelId, float x, float y);
   void fadeChannel(int channelId, float targetVolume, float duration);
   void setMasterVolume(float volume);
+
+  // TODO(SeedyROM): Move this to a separate file
   void beginShutdown() {
     shutdownRequested = true;
     shutdownRampRemaining = SHUTDOWN_RAMP_DURATION;
   }
+  void setSpeed(float newSpeed) {
+    gameSpeed = std::clamp(newSpeed, 0.1f, 3.0f);
+  }
+
+  float getSpeed() const { return gameSpeed; }
 
   // Audio thread callback
   void audioCallback(float *buffer, size_t frames);
@@ -80,6 +89,7 @@ private:
   std::array<AudioChannel, MAX_CHANNELS> channels;
   AudioQueue commandQueue;
   float masterVolume = 1.0f;
+  float gameSpeed = 1.0f;
 
   void processCommands();
   void mixAudio(float *buffer, size_t frames);

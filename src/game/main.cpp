@@ -163,12 +163,15 @@ int main(int argc, char *argv[]) {
         switch (event.key.keysym.sym) {
         case SDLK_1:
           timer.setTimeScale(0.5f);
+          audioEngine.setSpeed(0.5f);
           break;
         case SDLK_2:
           timer.setTimeScale(1.0f);
+          audioEngine.setSpeed(1.0f);
           break;
         case SDLK_3:
           timer.setTimeScale(2.0f);
+          audioEngine.setSpeed(2.0f);
           break;
         case SDLK_SPACE:
           audioEngine.playSound("./assets/sfx/real-trap-shit.wav");
