@@ -52,7 +52,7 @@ public:
   template <typename Handler>
   requires std::invocable<Handler, const AudioCommand &>
   void processCommands(Handler &&handler) {
-    if (auto cmd = queue.try_pop()) {
+    if (auto cmd = m_queue.try_pop()) {
       handler(*cmd);
       processCommands(handler); // Process all pending commands
     }

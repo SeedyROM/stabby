@@ -24,14 +24,14 @@ public:
     return nullptr;
   }
 
-  AudioEngine &getEngine() { return engine; }
+  AudioEngine &getEngine() { return m_engine; }
 
 private:
-  AudioEngine engine;
+  AudioEngine m_engine;
 
   void processAudio(const AudioConfig &config, AudioBuffer<float> buffer) {
     // Convert AudioBuffer to raw float buffer for AudioEngine
-    engine.audioCallback(buffer.data, buffer.numFrames);
+    m_engine.audioCallback(buffer.data, buffer.numFrames);
   }
 };
 
@@ -41,7 +41,7 @@ public:
   AudioManager() {
     adapter = std::make_unique<AudioEngineAdapter>();
     m_system = AudioEngineAdapter::create(adapter.get());
-    if (!system) {
+    if (!m_system) {
       throw std::runtime_error("Failed to initialize audio system");
     }
   }
