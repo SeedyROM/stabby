@@ -40,7 +40,7 @@ class AudioManager {
 public:
   AudioManager() {
     adapter = std::make_unique<AudioEngineAdapter>();
-    system = AudioEngineAdapter::create(adapter.get());
+    m_system = AudioEngineAdapter::create(adapter.get());
     if (!system) {
       throw std::runtime_error("Failed to initialize audio system");
     }
@@ -49,19 +49,19 @@ public:
   AudioEngine &getEngine() { return adapter->getEngine(); }
 
   void pause() {
-    if (system)
-      system->pause();
+    if (m_system)
+      m_system->pause();
   }
   void resume() {
-    if (system)
-      system->resume();
+    if (m_system)
+      m_system->resume();
   }
-  bool isPaused() const { return system ? system->isPaused() : true; }
+  bool isPaused() const { return m_system ? m_system->isPaused() : true; }
 
 private:
   std::unique_ptr<AudioEngineAdapter>
       adapter; // Order matters - adapter must outlive system
-  std::unique_ptr<AudioSystem> system;
+  std::unique_ptr<AudioSystem> m_system;
 };
 
 } // namespace ste

@@ -36,7 +36,7 @@ struct AudioCommand {
 };
 
 class AudioQueue {
-  SPSCQueue<AudioCommand, 256> queue;
+  SPSCQueue<AudioCommand, 256> m_queue;
 
 public:
   bool pushPlay(std::shared_ptr<AudioFile> file, float volume = 1.0f,

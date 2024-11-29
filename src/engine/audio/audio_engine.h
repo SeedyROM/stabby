@@ -24,22 +24,22 @@ public:
   void setPosition(float x, float y);
   void fadeVolume(float target, float duration);
   [[nodiscard]] bool isActive() const {
-    return active && currentFile != nullptr;
+    return m_active && m_currentFile != nullptr;
   }
-  void setPlaybackSpeed(float speed) { playbackSpeed = speed; }
+  void setPlaybackSpeed(float speed) { m_playbackSpeed = speed; }
 
 private:
-  std::shared_ptr<AudioFile> currentFile;
-  size_t position = 0;
-  float volume = 1.0f;
-  float targetVolume = 1.0f;
-  float fadeTimeRemaining = 0.0f;
-  float fadeDuration = 0.0f;
-  float pitch = 1.0f;
-  float positionX = 0.0f;
-  float positionY = 0.0f;
-  bool active = false;
-  float playbackSpeed = 1.0f;
+  std::shared_ptr<AudioFile> m_currentFile;
+  size_t m_position = 0;
+  float m_volume = 1.0f;
+  float m_targetVolume = 1.0f;
+  float m_fadeTimeRemaining = 0.0f;
+  float m_fadeDuration = 0.0f;
+  float m_pitch = 1.0f;
+  float m_positionX = 0.0f;
+  float m_positionY = 0.0f;
+  bool m_active = false;
+  float m_playbackSpeed = 1.0f;
 
   // Utility functions
   [[nodiscard]] float calculatePanLeft() const;
@@ -72,32 +72,32 @@ public:
 
   // TODO(SeedyROM): Move this to a separate file
   void beginShutdown() {
-    shutdownRequested = true;
-    shutdownRampRemaining = SHUTDOWN_RAMP_DURATION;
+    m_shutdownRequested = true;
+    m_shutdownRampRemaining = SHUTDOWN_RAMP_DURATION;
   }
   void setSpeed(float newSpeed) {
-    gameSpeed = std::clamp(newSpeed, 0.1f, 3.0f);
+    m_gameSpeed = std::clamp(newSpeed, 0.1f, 3.0f);
   }
 
-  float getSpeed() const { return gameSpeed; }
+  float getSpeed() const { return m_gameSpeed; }
 
   // Audio thread callback
   void audioCallback(float *buffer, size_t frames);
 
 private:
   static constexpr size_t MAX_CHANNELS = 16;
-  std::array<AudioChannel, MAX_CHANNELS> channels;
-  AudioQueue commandQueue;
-  float masterVolume = 1.0f;
-  float gameSpeed = 1.0f;
+  static constexpr float SHUTDOWN_RAMP_DURATION = 0.05f; // 50ms ramp
+
+  std::array<AudioChannel, MAX_CHANNELS> m_channels;
+  AudioQueue m_commandQueue;
+  float m_masterVolume = 1.0f;
+  float m_gameSpeed = 1.0f;
+  bool m_shutdownRequested = false;
+  float m_shutdownRampRemaining = 0.0f;
 
   void processCommands();
   void mixAudio(float *buffer, size_t frames);
   [[nodiscard]] int findFreeChannel() const;
-
-  static constexpr float SHUTDOWN_RAMP_DURATION = 0.05f; // 50ms ramp
-  bool shutdownRequested = false;
-  float shutdownRampRemaining = 0.0f;
 };
 
 }; // namespace ste

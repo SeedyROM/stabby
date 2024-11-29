@@ -1,4 +1,4 @@
-// audio_queue.cpp
+// audio_m_queue.cpp
 #include "audio_queue.h"
 #include "audio_file.h"
 
@@ -11,14 +11,14 @@ bool AudioQueue::pushPlay(std::shared_ptr<AudioFile> file, float volume,
   cmd.file = file; // shared_ptr handles ref counting
   cmd.value1 = volume;
   cmd.channelId = channelId;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
 bool AudioQueue::pushStop(int channelId) {
   AudioCommand cmd;
   cmd.type = AudioCommand::Type::Stop;
   cmd.channelId = channelId;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
 bool AudioQueue::pushVolume(int channelId, float volume) {
@@ -26,7 +26,7 @@ bool AudioQueue::pushVolume(int channelId, float volume) {
   cmd.type = AudioCommand::Type::SetVolume;
   cmd.value1 = volume;
   cmd.channelId = channelId;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
 bool AudioQueue::pushFade(int channelId, float targetVolume, float duration) {
@@ -36,7 +36,7 @@ bool AudioQueue::pushFade(int channelId, float targetVolume, float duration) {
   cmd.value1 = std::abs(targetVolume);
   cmd.value2 = duration;
   cmd.channelId = channelId;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
 bool AudioQueue::pushPitch(int channelId, float pitch) {
@@ -44,7 +44,7 @@ bool AudioQueue::pushPitch(int channelId, float pitch) {
   cmd.type = AudioCommand::Type::SetPitch;
   cmd.value1 = pitch;
   cmd.channelId = channelId;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
 bool AudioQueue::pushPosition(int channelId, float x, float y) {
@@ -53,7 +53,7 @@ bool AudioQueue::pushPosition(int channelId, float x, float y) {
   cmd.value1 = x;
   cmd.value2 = y;
   cmd.channelId = channelId;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
 bool AudioQueue::pushLoop(int channelId, bool shouldLoop) {
@@ -61,15 +61,15 @@ bool AudioQueue::pushLoop(int channelId, bool shouldLoop) {
   cmd.type = AudioCommand::Type::SetLoop;
   cmd.channelId = channelId;
   cmd.flag = shouldLoop;
-  return queue.try_push(cmd);
+  return m_queue.try_push(cmd);
 }
 
-bool AudioQueue::empty() const { return queue.empty(); }
+bool AudioQueue::empty() const { return m_queue.empty(); }
 
-bool AudioQueue::full() const { return queue.full(); }
+bool AudioQueue::full() const { return m_queue.full(); }
 
 void AudioQueue::clear() {
-  while (queue.try_pop()) {
+  while (m_queue.try_pop()) {
   }
 }
 
