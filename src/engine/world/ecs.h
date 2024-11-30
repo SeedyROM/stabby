@@ -4,6 +4,7 @@
 #include <bitset>
 #include <concepts>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <type_traits>
