@@ -21,6 +21,7 @@ void AudioChannel::update(float deltaTime) {
   if (!m_active || !m_currentFile)
     return;
 
+  // Don't let the speed change too quickly
   m_currentSpeed = std::lerp(m_currentSpeed, m_targetSpeed, deltaTime * 8.0f);
 
   if (m_fadeTimeRemaining > 0.0f) {
