@@ -10,7 +10,7 @@ A modern 2D hack 'n' slash game built with a custom C++ game engine. This projec
 - [x] Setup Conan
 - [x] Initial project setup with Conan and SDL2/GLAD/GLM
 - [x] Create reproducible builds with `Makefile`/`make.bat` script code
-- [x] Import/translate modified ECS from C# prototype
+- [x] Attempt to translate modified ECS from C# prototype
 - [x] Create simple sprite renderer using OpenGL
 - [x] Refactor/move C# ECS implementation into C++23
 - [x] Resource loading
