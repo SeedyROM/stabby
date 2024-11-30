@@ -15,31 +15,47 @@ public:
   AudioChannel() = default;
   ~AudioChannel() = default;
 
+  // Core audio functions
   void update(float deltaTime);
   void mix(float *buffer, size_t frames);
   void play(std::shared_ptr<AudioFile> file, float vol = 1.0f);
   void stop();
+
+  // State control
+  [[nodiscard]] bool isActive() const {
+    return m_active && m_currentFile != nullptr;
+  }
   void setVolume(float vol);
   void setPitch(float newPitch);
   void setPosition(float x, float y);
   void fadeVolume(float target, float duration);
-  [[nodiscard]] bool isActive() const {
-    return m_active && m_currentFile != nullptr;
-  }
-  void setPlaybackSpeed(float speed) { m_playbackSpeed = speed; }
+
+  // Playback speed control
+  void setTargetPlaybackSpeed(float speed);
+  void setPlaybackSpeed(float speed);
 
 private:
+  // Audio data
   std::shared_ptr<AudioFile> m_currentFile;
   size_t m_position = 0;
+
+  // Volume control
   float m_volume = 1.0f;
   float m_targetVolume = 1.0f;
   float m_fadeTimeRemaining = 0.0f;
   float m_fadeDuration = 0.0f;
+
+  // Pitch and position
   float m_pitch = 1.0f;
   float m_positionX = 0.0f;
   float m_positionY = 0.0f;
+
+  // State flags
   bool m_active = false;
-  float m_playbackSpeed = 1.0f;
+
+  // Speed transition
+  float m_currentSpeed = 1.0f;
+  float m_targetSpeed = 1.0f;
 
   // Utility functions
   [[nodiscard]] float calculatePanLeft() const;

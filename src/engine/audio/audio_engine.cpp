@@ -13,11 +13,16 @@ constexpr float PI = 3.14159265358979323846f;
 constexpr float DISTANCE_FALLOFF = 1.0f;
 constexpr float MAX_DISTANCE = 10.0f;
 
+void AudioChannel::setPlaybackSpeed(float speed) {
+  m_targetSpeed = std::clamp(speed, 0.1f, 3.0f);
+}
+
 void AudioChannel::update(float deltaTime) {
   if (!m_active || !m_currentFile)
     return;
 
-  // Update fading
+  m_currentSpeed = std::lerp(m_currentSpeed, m_targetSpeed, deltaTime * 8.0f);
+
   if (m_fadeTimeRemaining > 0.0f) {
     m_fadeTimeRemaining = std::max(0.0f, m_fadeTimeRemaining - deltaTime);
     float t = 1.0f - (m_fadeTimeRemaining / m_fadeDuration);
@@ -38,25 +43,20 @@ void AudioChannel::mix(float *buffer, size_t frames) {
   const float *sourceData = m_currentFile->data();
   const size_t sourceSize = m_currentFile->size();
   const size_t numChannels = m_currentFile->getChannels();
-  const float effectivePitch =
-      m_pitch * m_playbackSpeed; // Combine m_pitch with speed
+  const float effectivePitch = m_pitch * m_currentSpeed;
+
+  float readPosition = static_cast<float>(m_position);
 
   for (size_t frame = 0; frame < frames; ++frame) {
-    // Calculate the source m_position with combined m_pitch and speed
-    float sourcePos = static_cast<float>(m_position) * effectivePitch;
-
-    // Get interpolated sample(s)
     float sample = 0.0f;
     if (numChannels == 1) {
-      sample = interpolateSample(sourcePos);
+      sample = interpolateSample(readPosition);
     } else {
-      // For stereo files, interpolate both m_channels
-      float leftSample = interpolateSample(sourcePos * 2.0f);
-      float rightSample = interpolateSample(sourcePos * 2.0f + 1.0f);
+      float leftSample = interpolateSample(readPosition * 2.0f);
+      float rightSample = interpolateSample(readPosition * 2.0f + 1.0f);
       sample = (leftSample + rightSample) * 0.5f;
     }
 
-    // Apply m_volume and spatialization
     float leftGain = m_volume;
     float rightGain = m_volume;
     applySpatialization(leftGain, rightGain);
@@ -64,17 +64,18 @@ void AudioChannel::mix(float *buffer, size_t frames) {
     buffer[frame * 2] += sample * leftGain;
     buffer[frame * 2 + 1] += sample * rightGain;
 
-    // Update m_position with speed-adjusted increment
-    m_position += 1;
-    if (m_position >= sourceSize / numChannels) {
+    readPosition += effectivePitch;
+    if (static_cast<size_t>(readPosition) >= sourceSize / numChannels) {
       if (m_currentFile->isLooping()) {
-        m_position = 0;
+        readPosition = 0;
       } else {
         stop();
         break;
       }
     }
   }
+
+  m_position = static_cast<size_t>(readPosition);
 }
 
 void AudioChannel::play(std::shared_ptr<AudioFile> file, float vol) {
@@ -133,6 +134,8 @@ float AudioChannel::calculatePanRight() const {
 }
 
 void AudioChannel::applySpatialization(float &left, float &right) const {
+  constexpr float DISTANCE_FALLOFF = 1.0f;
+
   // Calculate distance-based attenuation
   float distance =
       std::sqrt(m_positionX * m_positionX + m_positionY * m_positionY);
@@ -147,17 +150,18 @@ void AudioChannel::applySpatialization(float &left, float &right) const {
   right *= calculatePanRight() * attenuation;
 }
 
-float AudioChannel::interpolateSample(float m_position) const {
-  if (!m_currentFile)
+float AudioChannel::interpolateSample(float position) const {
+  if (!m_currentFile) {
     return 0.0f;
+  }
 
   const float *data = m_currentFile->data();
   const size_t size = m_currentFile->size();
 
   // Linear interpolation between samples
-  size_t pos1 = static_cast<size_t>(std::floor(m_position));
+  size_t pos1 = static_cast<size_t>(std::floor(position));
   size_t pos2 = pos1 + 1;
-  float frac = m_position - static_cast<float>(pos1);
+  float frac = position - static_cast<float>(pos1);
 
   // Handle edge cases
   if (pos1 >= size)

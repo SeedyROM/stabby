@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <iostream>
+#include <memory>
 
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
@@ -30,6 +31,12 @@ struct Spinny {
          1.0f) *
         0.8f;
   }
+};
+
+struct TimeScaleState {
+  float currentScale = 1.0f;
+  float targetScale = 1.0f;
+  float transitionSpeed = 0.2f; // Adjust this to control smoothing speed
 };
 
 int main(int argc, char *argv[]) {
@@ -96,6 +103,33 @@ int main(int argc, char *argv[]) {
 
   // Create a world
   ste::World world;
+  world.addResource(std::make_shared<TimeScaleState>());
+
+  // Initialize game timer
+  ste::GameTimer timer(60);
+
+  // Add time resource
+  world.addSystem("TimeScaleUpdate", [&timer, &audioEngine](ste::World &world) {
+    auto time = world.getResource<ste::Time>();
+    auto timeScale = world.getResource<TimeScaleState>();
+
+    // Smoothly interpolate between current and target scale
+    if (timeScale->currentScale != timeScale->targetScale) {
+      float delta = timeScale->transitionSpeed * time->deltaSeconds;
+
+      if (timeScale->currentScale < timeScale->targetScale) {
+        timeScale->currentScale =
+            std::min(timeScale->currentScale + delta, timeScale->targetScale);
+      } else {
+        timeScale->currentScale =
+            std::max(timeScale->currentScale - delta, timeScale->targetScale);
+      }
+
+      // Apply the smoothed scale
+      timer.setTimeScale(timeScale->currentScale);
+      audioEngine.setSpeed(timeScale->currentScale);
+    }
+  });
 
   // Add physics system
   world.addSystem("Physics", [](ste::World &world) {
@@ -146,9 +180,6 @@ int main(int argc, char *argv[]) {
       },
       0, true);
 
-  // Initialize game timer
-  ste::GameTimer timer(60);
-
   audioEngine.playMusic("./assets/music/paniots-nine.wav", true);
 
   bool running = true;
@@ -160,19 +191,21 @@ int main(int argc, char *argv[]) {
       if (event.type == SDL_QUIT) {
         running = false;
       } else if (event.type == SDL_KEYDOWN) {
+        auto timeScale = world.getResource<TimeScaleState>();
+
         switch (event.key.keysym.sym) {
         case SDLK_1:
-          timer.setTimeScale(0.5f);
+          timeScale->targetScale = 0.5f;
           audioEngine.setSpeed(0.5f);
           audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_2:
-          timer.setTimeScale(1.0f);
+          timeScale->targetScale = 1.0f;
           audioEngine.setSpeed(1.0f);
           audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_3:
-          timer.setTimeScale(2.0f);
+          timeScale->targetScale = 2.0f;
           audioEngine.setSpeed(2.0f);
           audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;

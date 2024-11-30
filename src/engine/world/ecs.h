@@ -36,8 +36,7 @@ public:
 
 // Resource concept
 template <typename T>
-concept Resource = std::is_base_of_v<Time, T> ||
-    (!std::is_trivially_copyable_v<T> && std::is_class_v<T>);
+concept Resource = (std::is_class_v<T>);
 
 // Component ID generator
 class ComponentId {
