@@ -158,18 +158,33 @@ float AudioChannel::interpolateSample(float position) const {
   const float *data = m_currentFile->data();
   const size_t size = m_currentFile->size();
 
-  // Linear interpolation between samples
+  // Get integer position and fractional part
   size_t pos1 = static_cast<size_t>(std::floor(position));
-  size_t pos2 = pos1 + 1;
   float frac = position - static_cast<float>(pos1);
 
-  // Handle edge cases
-  if (pos1 >= size)
-    return 0.0f;
-  if (pos2 >= size)
-    pos2 = pos1;
+  // Get the sample points
+  size_t pos0 = (pos1 == 0) ? pos1 : pos1 - 1;        // Previous sample
+  size_t pos2 = (pos1 + 1 >= size) ? pos1 : pos1 + 1; // Next sample
+  size_t pos3 = (pos1 + 2 >= size) ? pos2 : pos1 + 2; // Next next sample
 
-  return std::lerp(data[pos1], data[pos2], frac);
+  float p0 = data[pos0];
+  float p1 = data[pos1];
+  float p2 = data[pos2];
+  float p3 = data[pos3];
+
+  // Cubic Hermite coefficients
+  float t = frac;
+  float t2 = t * t;
+  float t3 = t2 * t;
+
+  // Hermite basis functions
+  float h0 = -0.5f * t3 + t2 - 0.5f * t;
+  float h1 = 1.5f * t3 - 2.5f * t2 + 1.0f;
+  float h2 = -1.5f * t3 + 2.0f * t2 + 0.5f * t;
+  float h3 = 0.5f * t3 - 0.5f * t2;
+
+  // Interpolate
+  return p0 * h0 + p1 * h1 + p2 * h2 + p3 * h3;
 }
 
 namespace {

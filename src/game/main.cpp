@@ -36,7 +36,7 @@ struct Spinny {
 struct TimeScaleState {
   float currentScale = 1.0f;
   float targetScale = 1.0f;
-  float transitionSpeed = 0.2f; // Adjust this to control smoothing speed
+  float transitionSpeed = 0.1f; // Adjust this to control smoothing speed
 };
 
 int main(int argc, char *argv[]) {
@@ -197,17 +197,17 @@ int main(int argc, char *argv[]) {
         case SDLK_1:
           timeScale->targetScale = 0.5f;
           audioEngine.setSpeed(0.5f);
-          audioEngine.playSound("./assets/sfx/slowdown.wav");
+          // audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_2:
           timeScale->targetScale = 1.0f;
           audioEngine.setSpeed(1.0f);
-          audioEngine.playSound("./assets/sfx/slowdown.wav");
+          // audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_3:
           timeScale->targetScale = 2.0f;
           audioEngine.setSpeed(2.0f);
-          audioEngine.playSound("./assets/sfx/slowdown.wav");
+          // audioEngine.playSound("./assets/sfx/slowdown.wav");
           break;
         case SDLK_SPACE:
           audioEngine.playSound("./assets/sfx/real-trap-shit.wav");
