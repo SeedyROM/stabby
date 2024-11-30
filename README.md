@@ -15,6 +15,7 @@ A modern 2D hack 'n' slash game built with a custom C++ game engine. This projec
 - [x] Refactor/move C# ECS implementation into C++23
 - [x] Resource loading
 - [x] Audio system basics
+- [x] Dynamic audio playback system with sound effects, music and speed control
 
 ### In Progress
 
