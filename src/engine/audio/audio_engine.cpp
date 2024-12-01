@@ -79,8 +79,11 @@ void AudioChannel::mix(float *buffer, size_t frames) {
   m_position = static_cast<size_t>(readPosition);
 }
 
-void AudioChannel::play(std::shared_ptr<AudioFile> file, float vol) {
-  m_currentFile = std::move(file);
+void AudioChannel::play(AudioFile *file, float vol) {
+  if (!file)
+    return;
+
+  m_currentFile = file;
   m_position = 0;
   m_volume = vol;
   m_targetVolume = vol;
@@ -90,7 +93,7 @@ void AudioChannel::play(std::shared_ptr<AudioFile> file, float vol) {
 
 void AudioChannel::stop() {
   m_active = false;
-  m_currentFile.reset();
+  m_currentFile = nullptr;
   m_position = 0;
 }
 
@@ -217,37 +220,34 @@ AudioEngine::~AudioEngine() {
   stopAll();
 }
 
-void AudioEngine::playSound(const std::string &path, float m_volume) {
-  try {
-    auto file = std::make_shared<AudioFile>(path);
-    int channel = findFreeChannel();
-    if (channel != -1) {
-      m_commandQueue.pushPlay(file, m_volume, channel);
-    }
-  } catch (const AudioFileException &e) {
-    std::cerr << "Failed to load sound file: " << e.what() << std::endl;
-    // Handle or propagate error
-    // Could log error or throw depending on your error handling strategy
+void AudioEngine::playSound(AssetHandle<AudioFile> sound, float volume) {
+  if (!sound.isValid()) {
+    std::cerr << "Attempted to play invalid sound asset" << std::endl;
+    return;
+  }
+
+  int channel = findFreeChannel();
+  if (channel != -1) {
+    m_commandQueue.pushPlay(sound.operator->(), volume, channel);
   }
 }
 
-void AudioEngine::playMusic(const std::string &path, bool loop) {
-  try {
-    auto file = std::make_shared<AudioFile>(path);
-    file->setLooping(loop);
-
-    // Stop any currently playing music
-    stopChannel(0);
-
-    // Queue the new music
-    m_commandQueue.pushPlay(file, 1.0f, 0); // Channel 0 reserved for music
-  } catch (const AudioFileException &e) {
-    std::cerr << "Failed to load sound file: " << e.what() << std::endl;
-
-    // Handle or propagate error
+void AudioEngine::playMusic(AssetHandle<AudioFile> music, bool loop) {
+  if (!music.isValid()) {
+    std::cerr << "Attempted to play invalid music asset" << std::endl;
+    return;
   }
-}
 
+  // Set looping state on the audio file
+  music->setLooping(loop);
+
+  // Stop any currently playing music
+  stopChannel(0);
+
+  // Queue the new music
+  m_commandQueue.pushPlay(music.operator->(), 1.0f,
+                          0); // Channel 0 reserved for music
+}
 void AudioEngine::stopChannel(int channelId) {
   if (channelId >= 0 && channelId < static_cast<int>(MAX_CHANNELS)) {
     m_commandQueue.pushStop(channelId);

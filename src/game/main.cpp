@@ -98,6 +98,14 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  // Load sounds
+  auto realTrapShit = assetManager->load<ste::AudioFile>(
+      ste::getAssetPath("sfx/real-trap-shit.wav"));
+  auto slowDown =
+      assetManager->load<ste::AudioFile>(ste::getAssetPath("sfx/slowdown.wav"));
+  auto music = assetManager->load<ste::AudioFile>(
+      ste::getAssetPath("music/paniots-nine.wav"));
+
   // Enable alpha blending
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -181,7 +189,7 @@ int main(int argc, char *argv[]) {
       },
       0, true);
 
-  audioEngine.playMusic("./assets/music/paniots-nine.wav", true);
+  audioEngine.playMusic(music, true);
 
   bool running = true;
   while (running) {
@@ -198,20 +206,20 @@ int main(int argc, char *argv[]) {
         case SDLK_1:
           timeScale->targetScale = 0.5f;
           audioEngine.setSpeed(0.5f);
-          audioEngine.playSound("./assets/sfx/slowdown.wav");
+          audioEngine.playSound(slowDown);
           break;
         case SDLK_2:
           timeScale->targetScale = 1.0f;
           audioEngine.setSpeed(1.0f);
-          audioEngine.playSound("./assets/sfx/slowdown.wav");
+          audioEngine.playSound(slowDown);
           break;
         case SDLK_3:
           timeScale->targetScale = 2.0f;
           audioEngine.setSpeed(2.0f);
-          audioEngine.playSound("./assets/sfx/slowdown.wav");
+          audioEngine.playSound(slowDown);
           break;
         case SDLK_SPACE:
-          audioEngine.playSound("./assets/sfx/real-trap-shit.wav");
+          audioEngine.playSound(realTrapShit);
 
           // Spawn textured entities
           for (int i = 0; i < 50; i++) {

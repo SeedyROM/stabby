@@ -77,6 +77,18 @@ AssetHandle<T> AssetManager::load(const std::string &path) {
         m_totalAssets--;
         throw std::runtime_error(createInfo.errorMsg);
       }
+      // Load AudioFile
+    } else if constexpr (std::is_same_v<T, AudioFile>) {
+      AudioFile::CreateInfo createInfo;
+      if (auto audioFile = AudioFile::createFromFile(path, createInfo)) {
+        auto asset = std::make_shared<AudioFile>(std::move(*audioFile));
+        m_assets.try_emplace(path, asset, 1);
+        m_loadedAssets++;
+        return AssetHandle<T>(asset);
+      } else {
+        m_totalAssets--;
+        throw std::runtime_error(createInfo.errorMsg);
+      }
     } else {
       // Asset type-specific loading logic here
       throw std::runtime_error("Unsupported asset type");
@@ -142,5 +154,12 @@ template std::future<AssetHandle<Texture>>
 AssetManager::loadAsync<Texture>(const std::string &);
 template bool AssetManager::exists<Texture>(const std::string &) const;
 template void AssetManager::remove<Texture>(const std::string &);
+
+template AssetHandle<AudioFile>
+AssetManager::load<AudioFile>(const std::string &);
+template std::future<AssetHandle<AudioFile>>
+AssetManager::loadAsync<AudioFile>(const std::string &);
+template bool AssetManager::exists<AudioFile>(const std::string &) const;
+template void AssetManager::remove<AudioFile>(const std::string &);
 
 } // namespace ste
