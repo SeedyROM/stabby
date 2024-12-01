@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
   auto slowDown =
       assetManager->load<ste::AudioFile>(ste::getAssetPath("sfx/slowdown.wav"));
   auto music = assetManager->load<ste::AudioFile>(
-      ste::getAssetPath("music/paniots-nine.wav"));
+      ste::getAssetPath("music/custom-beat.ogg"));
 
   // Enable alpha blending
   glEnable(GL_BLEND);

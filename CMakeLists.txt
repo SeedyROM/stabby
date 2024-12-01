@@ -13,6 +13,7 @@ find_package(SDL2_image REQUIRED)
 find_package(glm REQUIRED)
 find_package(glad REQUIRED)
 find_package(Vorbis REQUIRED)
+find_package(Freetype REQUIRED)
 
 # Add the library/game directories
 add_subdirectory(src/engine)

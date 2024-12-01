@@ -5,3 +5,5 @@
 #include "shader.h"
 #include "texture.h"
 #include "window.h"
+
+#include "fonts/font.h"
