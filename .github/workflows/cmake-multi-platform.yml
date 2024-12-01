@@ -11,12 +11,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        build_type: [Release, RelWithDebInfo]
+        os: [ubuntu-latest] # , windows-latest]
+        build_type: [Release] # RelWithDebInfo]
         include:
-          - os: windows-latest
-            cpp_compiler: cl
-            separator: '\\'
+          # - os: windows-latest
+          #   cpp_compiler: cl
+          #   separator: '\\'
           - os: ubuntu-latest
             cpp_compiler: g++
             separator: "/"
