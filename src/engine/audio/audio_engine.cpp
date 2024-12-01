@@ -95,6 +95,8 @@ void AudioChannel::stop() {
   m_active = false;
   m_currentFile = nullptr;
   m_position = 0;
+  m_currentSpeed = 1.0f;
+  m_targetSpeed = 1.0f;
 }
 
 void AudioChannel::setVolume(float vol) {
@@ -379,10 +381,12 @@ void AudioEngine::audioCallback(float *buffer, size_t frames) {
   }
 }
 
-int AudioEngine::findFreeChannel() const {
+int AudioEngine::findFreeChannel() {
   // Skip channel 0 (reserved for music)
   for (size_t i = 1; i < MAX_CHANNELS; ++i) {
     if (!m_channels[i].isActive()) {
+      // Optionally force a stop to ensure clean state
+      m_channels[i].stop();
       return static_cast<int>(i);
     }
   }

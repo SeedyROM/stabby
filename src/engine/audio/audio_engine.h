@@ -114,7 +114,7 @@ private:
 
   void processCommands();
   void mixAudio(float *buffer, size_t frames);
-  [[nodiscard]] int findFreeChannel() const;
+  [[nodiscard]] int findFreeChannel();
 };
 
 }; // namespace ste
