@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "engine/async/thread_pool.h"
+#include "engine/audio/audio_file.h"
 #include "engine/rendering/shader.h"
 #include "engine/rendering/texture.h"
 

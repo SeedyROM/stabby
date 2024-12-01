@@ -1,30 +1,31 @@
+// audio_file.h
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace ste {
 
-class AudioFileException : public std::runtime_error {
-public:
-  explicit AudioFileException(const std::string &message)
-      : std::runtime_error(message) {}
-};
-
 class AudioFile {
 public:
-  explicit AudioFile(const std::string &path);
-  ~AudioFile();
+  struct CreateInfo {
+    std::string errorMsg;
+    bool success = true;
+  };
 
-  // Delete copy operations to prevent accidental copies
+  static std::optional<AudioFile> createFromFile(const std::string &path,
+                                                 CreateInfo &createInfo);
+
+  ~AudioFile();
+  AudioFile(AudioFile &&other) noexcept;
+  AudioFile &operator=(AudioFile &&other) noexcept;
+
+  // Delete copy operations
   AudioFile(const AudioFile &) = delete;
   AudioFile &operator=(const AudioFile &) = delete;
-
-  // Allow move operations
-  AudioFile(AudioFile &&) noexcept;
-  AudioFile &operator=(AudioFile &&) noexcept;
 
   // Getters
   [[nodiscard]] const float *data() const { return m_samples.data(); }
@@ -38,19 +39,26 @@ public:
   void setLooping(bool loop) { m_looping = loop; }
 
 private:
+  explicit AudioFile(const std::string &filename, std::vector<float> &&samples,
+                     uint32_t sampleRate, uint32_t channels);
+
+  static bool loadWAV(const std::string &path, std::vector<float> &samples,
+                      uint32_t &sampleRate, uint32_t &channels,
+                      CreateInfo &createInfo);
+
+  static bool loadOGG(const std::string &path, std::vector<float> &samples,
+                      uint32_t &sampleRate, uint32_t &channels,
+                      CreateInfo &createInfo);
+
+  static std::string getFileExtension(const std::string &path);
+  static void convertToFloat(const std::vector<int16_t> &pcmData,
+                             std::vector<float> &samples);
+
   std::vector<float> m_samples;
   std::string m_filename;
   uint32_t m_sampleRate = 44100;
   uint32_t m_channels = 0;
   bool m_looping = false;
-
-  // File format handlers
-  void loadWAV(const std::string &path);
-  void loadOGG(const std::string &path);
-
-  // Utility functions
-  static std::string getFileExtension(const std::string &path);
-  void convertToFloat(const std::vector<int16_t> &pcmData);
 };
 
-}; // namespace ste
+} // namespace ste

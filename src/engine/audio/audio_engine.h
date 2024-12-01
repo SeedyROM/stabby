@@ -7,6 +7,7 @@
 
 #include "audio_file.h"
 #include "audio_queue.h"
+#include "engine/assets/asset_manager.h"
 
 namespace ste {
 
@@ -18,7 +19,7 @@ public:
   // Core audio functions
   void update(float deltaTime);
   void mix(float *buffer, size_t frames);
-  void play(std::shared_ptr<AudioFile> file, float vol = 1.0f);
+  void play(AudioFile *file, float vol = 1.0f);
   void stop();
 
   // State control
@@ -36,7 +37,7 @@ public:
 
 private:
   // Audio data
-  std::shared_ptr<AudioFile> m_currentFile;
+  AudioFile *m_currentFile = nullptr;
   size_t m_position = 0;
 
   // Volume control
@@ -76,8 +77,8 @@ public:
   AudioEngine &operator=(AudioEngine &&) = delete;
 
   // Main interface
-  void playSound(const std::string &path, float volume = 1.0f);
-  void playMusic(const std::string &path, bool loop = true);
+  void playSound(AssetHandle<AudioFile> sound, float volume = 1.0f);
+  void playMusic(AssetHandle<AudioFile> music, bool loop = true);
   void stopChannel(int channelId);
   void stopAll();
   void setChannelVolume(int channelId, float volume);
@@ -113,7 +114,7 @@ private:
 
   void processCommands();
   void mixAudio(float *buffer, size_t frames);
-  [[nodiscard]] int findFreeChannel() const;
+  [[nodiscard]] int findFreeChannel();
 };
 
 }; // namespace ste

@@ -4,11 +4,12 @@
 
 namespace ste {
 
-bool AudioQueue::pushPlay(std::shared_ptr<AudioFile> file, float volume,
-                          int channelId) {
+bool AudioQueue::pushPlay(AudioFile *file, float volume = 1.0f,
+                          int channelId = -1) {
   AudioCommand cmd;
   cmd.type = AudioCommand::Type::Play;
-  cmd.file = file; // shared_ptr handles ref counting
+  cmd.file =
+      file; // Store the raw pointer - the AssetHandle maintains ownership
   cmd.value1 = volume;
   cmd.channelId = channelId;
   return m_queue.try_push(cmd);

@@ -21,7 +21,7 @@ struct AudioCommand {
   };
 
   Type type;
-  std::shared_ptr<AudioFile> file;
+  AudioFile *file = nullptr;
   float value1 = 0.0f; // volume, pitch, or x position
   float value2 = 0.0f; // fade time or y position
   int channelId = -1;
@@ -39,8 +39,7 @@ class AudioQueue {
   SPSCQueue<AudioCommand, 256> m_queue;
 
 public:
-  bool pushPlay(std::shared_ptr<AudioFile> file, float volume = 1.0f,
-                int channelId = -1);
+  bool pushPlay(AudioFile *file, float volume, int channelId);
   bool pushStop(int channelId);
   bool pushVolume(int channelId, float volume);
   bool pushFade(int channelId, float targetVolume, float duration);

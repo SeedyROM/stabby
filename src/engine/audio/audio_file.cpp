@@ -1,9 +1,9 @@
+// audio_file.cpp
 #include "audio_file.h"
 
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-
 #include <vorbis/vorbisfile.h>
 
 namespace ste {
@@ -18,10 +18,10 @@ struct WAVHeader {
   char fmt[4];            // "fmt "
   uint32_t fmtSize;       // Format chunk size
   uint16_t audioFormat;   // Audio format (1 = PCM)
-  uint16_t numChannels;   // Number of m_channels
-  uint32_t m_sampleRate;  // Sample rate
+  uint16_t numChannels;   // Number of channels
+  uint32_t sampleRate;    // Sample rate
   uint32_t byteRate;      // Bytes per second
-  uint16_t blockAlign;    // Bytes per sample * m_channels
+  uint16_t blockAlign;    // Bytes per sample * channels
   uint16_t bitsPerSample; // Bits per sample
 };
 #pragma pack(pop)
@@ -33,20 +33,41 @@ bool fileExists(const std::string &path) {
 }
 } // namespace
 
-AudioFile::AudioFile(const std::string &path) : m_filename(path) {
+std::optional<AudioFile> AudioFile::createFromFile(const std::string &path,
+                                                   CreateInfo &createInfo) {
   if (!fileExists(path)) {
-    throw AudioFileException("File not found: " + path);
+    createInfo.success = false;
+    createInfo.errorMsg = "File not found: " + path;
+    return std::nullopt;
   }
+
+  std::vector<float> samples;
+  uint32_t sampleRate;
+  uint32_t channels;
+  bool success = false;
 
   std::string ext = getFileExtension(path);
   if (ext == "wav") {
-    loadWAV(path);
+    success = loadWAV(path, samples, sampleRate, channels, createInfo);
   } else if (ext == "ogg") {
-    loadOGG(path);
+    success = loadOGG(path, samples, sampleRate, channels, createInfo);
   } else {
-    throw AudioFileException("Unsupported file format: " + ext);
+    createInfo.success = false;
+    createInfo.errorMsg = "Unsupported file format: " + ext;
+    return std::nullopt;
   }
+
+  if (!success) {
+    return std::nullopt;
+  }
+
+  return AudioFile(path, std::move(samples), sampleRate, channels);
 }
+
+AudioFile::AudioFile(const std::string &filename, std::vector<float> &&samples,
+                     uint32_t sampleRate, uint32_t channels)
+    : m_samples(std::move(samples)), m_filename(filename),
+      m_sampleRate(sampleRate), m_channels(channels) {}
 
 AudioFile::~AudioFile() = default;
 
@@ -66,10 +87,14 @@ AudioFile &AudioFile::operator=(AudioFile &&other) noexcept {
   return *this;
 }
 
-void AudioFile::loadWAV(const std::string &path) {
+bool AudioFile::loadWAV(const std::string &path, std::vector<float> &samples,
+                        uint32_t &sampleRate, uint32_t &channels,
+                        CreateInfo &createInfo) {
   std::ifstream file(path, std::ios::binary);
   if (!file) {
-    throw AudioFileException("Failed to open WAV file: " + path);
+    createInfo.success = false;
+    createInfo.errorMsg = "Failed to open WAV file: " + path;
+    return false;
   }
 
   // Read and validate header
@@ -79,15 +104,21 @@ void AudioFile::loadWAV(const std::string &path) {
   if (std::strncmp(header.riff, "RIFF", 4) != 0 ||
       std::strncmp(header.wave, "WAVE", 4) != 0 ||
       std::strncmp(header.fmt, "fmt ", 4) != 0) {
-    throw AudioFileException("Invalid WAV file format");
+    createInfo.success = false;
+    createInfo.errorMsg = "Invalid WAV file format";
+    return false;
   }
 
   if (header.audioFormat != 1) { // PCM = 1
-    throw AudioFileException("Unsupported WAV format: non-PCM");
+    createInfo.success = false;
+    createInfo.errorMsg = "Unsupported WAV format: non-PCM";
+    return false;
   }
 
   if (header.bitsPerSample != 16) {
-    throw AudioFileException("Unsupported WAV format: not 16-bit");
+    createInfo.success = false;
+    createInfo.errorMsg = "Unsupported WAV format: not 16-bit";
+    return false;
   }
 
   // Find data chunk
@@ -106,23 +137,35 @@ void AudioFile::loadWAV(const std::string &path) {
   file.read(reinterpret_cast<char *>(pcmData.data()), chunkSize);
 
   // Store audio properties
-  m_sampleRate = header.m_sampleRate;
-  m_channels = header.numChannels;
+  sampleRate = header.sampleRate;
+  channels = header.numChannels;
 
-  // Convert to float m_samples
-  convertToFloat(pcmData);
+  // Convert to float samples
+  convertToFloat(pcmData, samples);
+  return true;
 }
 
-void AudioFile::loadOGG(const std::string &path) {
+bool AudioFile::loadOGG(const std::string &path, std::vector<float> &samples,
+                        uint32_t &sampleRate, uint32_t &channels,
+                        CreateInfo &createInfo) {
   OggVorbis_File vf;
   if (ov_fopen(path.c_str(), &vf) != 0) {
-    throw AudioFileException("Failed to open OGG file: " + path);
+    createInfo.success = false;
+    createInfo.errorMsg = "Failed to open OGG file: " + path;
+    return false;
   }
 
   // Get file info
   vorbis_info *vi = ov_info(&vf, -1);
-  m_sampleRate = static_cast<uint32_t>(vi->rate);
-  m_channels = static_cast<uint32_t>(vi->channels);
+  if (!vi) {
+    createInfo.success = false;
+    createInfo.errorMsg = "Failed to get OGG file info";
+    ov_clear(&vf);
+    return false;
+  }
+
+  sampleRate = static_cast<uint32_t>(vi->rate);
+  channels = static_cast<uint32_t>(vi->channels);
 
   // Read all PCM data
   std::vector<int16_t> pcmData;
@@ -132,25 +175,34 @@ void AudioFile::loadOGG(const std::string &path) {
 
   while ((bytesRead = ov_read(&vf, buffer, sizeof(buffer), 0, 2, 1,
                               &currentSection)) > 0) {
-    size_t m_samplesRead = bytesRead / sizeof(int16_t);
+    size_t samplesRead = bytesRead / sizeof(int16_t);
     size_t currentSize = pcmData.size();
-    pcmData.resize(currentSize + m_samplesRead);
+    pcmData.resize(currentSize + samplesRead);
     std::memcpy(pcmData.data() + currentSize, buffer, bytesRead);
+  }
+
+  if (bytesRead < 0) {
+    createInfo.success = false;
+    createInfo.errorMsg = "Error reading OGG file data";
+    ov_clear(&vf);
+    return false;
   }
 
   ov_clear(&vf);
 
-  // Convert to float m_samples
-  convertToFloat(pcmData);
+  // Convert to float samples
+  convertToFloat(pcmData, samples);
+  return true;
 }
 
-void AudioFile::convertToFloat(const std::vector<int16_t> &pcmData) {
-  m_samples.resize(pcmData.size());
+void AudioFile::convertToFloat(const std::vector<int16_t> &pcmData,
+                               std::vector<float> &samples) {
+  samples.resize(pcmData.size());
   const float scale = 1.0f / 32768.0f; // Scale factor for 16-bit audio
 
-  // Convert m_samples from int16 to float
+  // Convert samples from int16 to float
   for (size_t i = 0; i < pcmData.size(); ++i) {
-    m_samples[i] = static_cast<float>(pcmData[i]) * scale;
+    samples[i] = static_cast<float>(pcmData[i]) * scale;
   }
 }
 
@@ -164,4 +216,4 @@ std::string AudioFile::getFileExtension(const std::string &path) {
   return "";
 }
 
-}; // namespace ste
+} // namespace ste
