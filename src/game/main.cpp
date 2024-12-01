@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
   auto slowDown =
       assetManager->load<ste::AudioFile>(ste::getAssetPath("sfx/slowdown.wav"));
   auto music = assetManager->load<ste::AudioFile>(
-      ste::getAssetPath("music/paniots-nine.wav"));
+      ste::getAssetPath("music/custom-beat.ogg"));
 
   // Enable alpha blending
   glEnable(GL_BLEND);
@@ -204,19 +204,22 @@ int main(int argc, char *argv[]) {
 
         switch (event.key.keysym.sym) {
         case SDLK_1:
-          timeScale->targetScale = 0.5f;
-          audioEngine.setSpeed(0.5f);
-          audioEngine.playSound(slowDown);
+          timeScale->targetScale = 0.72f;
+          audioEngine.setSpeed(0.72f);
+          if (timeScale->currentScale != 0.72f)
+            audioEngine.playSound(slowDown);
           break;
         case SDLK_2:
           timeScale->targetScale = 1.0f;
           audioEngine.setSpeed(1.0f);
-          audioEngine.playSound(slowDown);
+          if (timeScale->currentScale != 1.0f)
+            audioEngine.playSound(slowDown);
           break;
         case SDLK_3:
-          timeScale->targetScale = 2.0f;
-          audioEngine.setSpeed(2.0f);
-          audioEngine.playSound(slowDown);
+          timeScale->targetScale = 1.68f;
+          audioEngine.setSpeed(1.68f);
+          if (timeScale->currentScale != 1.68f)
+            audioEngine.playSound(slowDown);
           break;
         case SDLK_SPACE:
           audioEngine.playSound(realTrapShit);
