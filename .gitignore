@@ -2,3 +2,4 @@ build/
 CMakeUserPresets.json
 .markers/
 .vscode/settings.json
+.DS_Store
