@@ -86,15 +86,10 @@ int main(int argc, char *argv[]) {
 
   // Load a texture
   ste::AssetHandle<ste::Texture> textureHandle;
-  try {
-    textureHandle = assetManager->load<ste::Texture>(
-        ste::getAssetPath("textures/albert.png"));
-    if (!textureHandle) {
-      std::cerr << "Failed to load texture" << std::endl;
-      return -1;
-    }
-  } catch (const std::exception &e) {
-    std::cerr << "Failed to load texture: " << e.what() << std::endl;
+  textureHandle = assetManager->load<ste::Texture>(
+      ste::getAssetPath("textures/albert.png"));
+  if (!textureHandle) {
+    std::cerr << "Failed to load texture" << std::endl;
     return -1;
   }
 
@@ -204,21 +199,33 @@ int main(int argc, char *argv[]) {
 
         switch (event.key.keysym.sym) {
         case SDLK_1:
-          timeScale->targetScale = 0.72f;
-          audioEngine.setSpeed(0.72f);
-          if (timeScale->currentScale != 0.72f)
+          timeScale->targetScale = 0.66f;
+          audioEngine.setSpeed(0.66f);
+          if (timeScale->currentScale != 0.66f)
             audioEngine.playSound(slowDown);
           break;
         case SDLK_2:
+          timeScale->targetScale = 0.90f;
+          audioEngine.setSpeed(0.90f);
+          if (timeScale->currentScale != 0.90f)
+            audioEngine.playSound(slowDown);
+          break;
+        case SDLK_3:
           timeScale->targetScale = 1.0f;
           audioEngine.setSpeed(1.0f);
           if (timeScale->currentScale != 1.0f)
             audioEngine.playSound(slowDown);
           break;
-        case SDLK_3:
-          timeScale->targetScale = 1.68f;
-          audioEngine.setSpeed(1.68f);
-          if (timeScale->currentScale != 1.68f)
+        case SDLK_4:
+          timeScale->targetScale = 1.25f;
+          audioEngine.setSpeed(1.25f);
+          if (timeScale->currentScale != 1.25f)
+            audioEngine.playSound(slowDown);
+          break;
+        case SDLK_5:
+          timeScale->targetScale = 1.55f;
+          audioEngine.setSpeed(1.55f);
+          if (timeScale->currentScale != 1.55f)
             audioEngine.playSound(slowDown);
           break;
         case SDLK_SPACE:
