@@ -71,11 +71,11 @@ The game is built on a custom C++ engine (STE - Stabby Engine) designed for high
 - Event handling
 - Resolution and display mode control
 
-### Input Handling
+#### Input Handling
 
 - Keyboard and mouse input
 
-### Scene Management
+#### Scene Management
 
 - Scene stack management
 
