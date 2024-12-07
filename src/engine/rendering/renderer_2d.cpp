@@ -68,6 +68,11 @@ std::optional<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
     return std::nullopt;
   }
 
+  // Enable alpha blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_DEPTH_TEST);
+
   // Create vertex array
   uint32_t vao;
   glGenVertexArrays(1, &vao);
