@@ -35,7 +35,7 @@ public:
     Builder &setResizable(bool resizable);
     Builder &setFullscreen(bool fullscreen);
     Builder &setMSAA(int samples);
-    std::optional<std::unique_ptr<Window>> build();
+    std::optional<std::shared_ptr<Window>> build();
 
   private:
     Config m_config;
@@ -43,7 +43,7 @@ public:
 
   static Builder builder() { return Builder(); }
 
-  static std::optional<std::unique_ptr<Window>> create(const std::string &title,
+  static std::optional<std::shared_ptr<Window>> create(const std::string &title,
                                                        int width, int height) {
     return builder().setTitle(title).setSize(width, height).build();
   }
