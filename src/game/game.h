@@ -53,10 +53,16 @@ public:
   }
 
   void update(float deltaTime) override {
+    // If the scene is paused, don't update
     if (isPaused())
       return;
 
-    m_timer.update(); // Update game timer
+    // Update input
+    m_inputManager.update();
+    handleInput();
+
+    // Update the game timer, camera, and world
+    m_timer.update();
     updateCamera(m_timer.getDeltaTime());
     m_world.update(m_timer.getDeltaTime());
   }
@@ -67,13 +73,29 @@ public:
     m_renderer->endScene();
   }
 
-  void handleEvent(const SDL_Event &event) override {
-    if (event.type == SDL_KEYDOWN) {
-      handleKeyPress(event.key.keysym.sym);
+private:
+  // Time scale presets mapped to keys
+  const std::unordered_map<ste::Input, float> TIME_SCALE_PRESETS = {
+      {ste::Input::Num1, 0.66f},
+      {ste::Input::Num2, 0.90f},
+      {ste::Input::Num3, 1.00f},
+      {ste::Input::Num4, 1.25f},
+      {ste::Input::Num5, 1.55f}};
+
+  void handleInput() {
+    // Handle time scale changes
+    for (const auto &[input, scale] : TIME_SCALE_PRESETS) {
+      if (m_inputManager.isKeyPressed(input)) {
+        setTimeScale(scale);
+      }
+    }
+
+    // Handle entity spawning
+    if (m_inputManager.isKeyPressed(ste::Input::Space)) {
+      spawnEntities();
     }
   }
 
-private:
   void setupSystems() {
     // Time scale system
     m_world.addSystem("TimeScaleUpdate", [this](ste::World &world) {
@@ -149,32 +171,6 @@ private:
         ste::getAssetPath("sfx/slowdown.wav"));
     m_music = m_assetLoader->load<ste::AudioFile>(
         ste::getAssetPath("music/level.ogg"));
-  }
-
-  void handleKeyPress(SDL_Keycode key) {
-    auto timeScale = m_world.getResource<TimeScaleState>();
-    auto &audioEngine = m_audioManager->getEngine();
-
-    switch (key) {
-    case SDLK_1:
-      setTimeScale(0.66f);
-      break;
-    case SDLK_2:
-      setTimeScale(0.90f);
-      break;
-    case SDLK_3:
-      setTimeScale(1.0f);
-      break;
-    case SDLK_4:
-      setTimeScale(1.25f);
-      break;
-    case SDLK_5:
-      setTimeScale(1.55f);
-      break;
-    case SDLK_SPACE:
-      spawnEntities();
-      break;
-    }
   }
 
   void setTimeScale(float scale) {

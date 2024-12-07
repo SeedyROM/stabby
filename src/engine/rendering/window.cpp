@@ -43,7 +43,7 @@ Window::Builder &Window::Builder::setMSAA(int samples) {
   return *this;
 }
 
-std::optional<std::unique_ptr<Window>> Window::Builder::build() {
+std::optional<std::shared_ptr<Window>> Window::Builder::build() {
   if (!Window::initializeSDL()) {
     std::cerr << "Failed to initialize SDL: " << Window::getLastError()
               << std::endl;
@@ -85,9 +85,9 @@ std::optional<std::unique_ptr<Window>> Window::Builder::build() {
     return std::nullopt;
   }
 
-  // Create window using unique_ptr constructor directly
+  // Create window using shared_ptr constructor directly
   auto newWindow =
-      std::unique_ptr<Window>(new Window(m_config, window, glContext));
+      std::shared_ptr<Window>(new Window(m_config, window, glContext));
   newWindow->setVSync(m_config.vsync);
   ++GLOBAL_WINDOW_COUNT;
 
