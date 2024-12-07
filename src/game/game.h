@@ -143,12 +143,12 @@ private:
   void loadAssets() {
     m_textureHandle = m_assetLoader->load<ste::Texture>(
         ste::getAssetPath("textures/albert.png"));
-    m_realTrapShit = m_assetLoader->load<ste::AudioFile>(
-        ste::getAssetPath("sfx/real-trap-shit.wav"));
+    m_click =
+        m_assetLoader->load<ste::AudioFile>(ste::getAssetPath("sfx/click.wav"));
     m_slowDown = m_assetLoader->load<ste::AudioFile>(
         ste::getAssetPath("sfx/slowdown.wav"));
     m_music = m_assetLoader->load<ste::AudioFile>(
-        ste::getAssetPath("music/custom-beat.ogg"));
+        ste::getAssetPath("music/level.ogg"));
   }
 
   void handleKeyPress(SDL_Keycode key) {
@@ -189,8 +189,8 @@ private:
   }
 
   void spawnEntities() {
-    if (m_realTrapShit) {
-      m_audioManager->getEngine().playSound(m_realTrapShit);
+    if (m_click) {
+      m_audioManager->getEngine().playSound(m_click);
     }
 
     for (int i = 0; i < 50; i++) {
@@ -240,7 +240,7 @@ private:
 
   // Asset handles
   ste::AssetHandle<ste::Texture> m_textureHandle;
-  ste::AssetHandle<ste::AudioFile> m_realTrapShit;
+  ste::AssetHandle<ste::AudioFile> m_click;
   ste::AssetHandle<ste::AudioFile> m_slowDown;
   ste::AssetHandle<ste::AudioFile> m_music;
 
