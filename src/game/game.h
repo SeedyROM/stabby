@@ -40,7 +40,7 @@ public:
 
   void onInit() override {
     // Initialize scene resources
-    getWorld().addResource(std::make_shared<TimeScaleState>());
+    m_world.addResource(std::make_shared<TimeScaleState>());
     setupSystems();
     loadAssets();
   }
@@ -58,12 +58,12 @@ public:
 
     m_timer.update(); // Update game timer
     updateCamera(m_timer.getDeltaTime());
-    getWorld().update(m_timer.getDeltaTime());
+    m_world.update(m_timer.getDeltaTime());
   }
 
   void render() override {
     m_renderer->beginScene(m_camera->getViewProjectionMatrix());
-    getWorld().render();
+    m_world.render();
     m_renderer->endScene();
   }
 
@@ -76,7 +76,7 @@ public:
 private:
   void setupSystems() {
     // Time scale system
-    getWorld().addSystem("TimeScaleUpdate", [this](ste::World &world) {
+    m_world.addSystem("TimeScaleUpdate", [this](ste::World &world) {
       auto time = world.getResource<ste::Time>();
       auto timeScale = world.getResource<TimeScaleState>();
 
@@ -97,7 +97,7 @@ private:
     });
 
     // Physics system
-    getWorld().addSystem("Physics", [](ste::World &world) {
+    m_world.addSystem("Physics", [](ste::World &world) {
       auto time = world.getResource<ste::Time>();
       ste::Query<Transform, Velocity, Spinny> query(&world);
 
@@ -119,7 +119,7 @@ private:
     });
 
     // Rendering system
-    getWorld().addSystem(
+    m_world.addSystem(
         "Rendering",
         [this](ste::World &world) {
           if (!m_textureHandle)
@@ -152,7 +152,7 @@ private:
   }
 
   void handleKeyPress(SDL_Keycode key) {
-    auto timeScale = getWorld().getResource<TimeScaleState>();
+    auto timeScale = m_world.getResource<TimeScaleState>();
     auto &audioEngine = m_audioManager->getEngine();
 
     switch (key) {
@@ -178,7 +178,7 @@ private:
   }
 
   void setTimeScale(float scale) {
-    auto timeScale = getWorld().getResource<TimeScaleState>();
+    auto timeScale = m_world.getResource<TimeScaleState>();
     if (timeScale->currentScale != scale) {
       timeScale->targetScale = scale;
       m_audioManager->getEngine().setSpeed(scale);
@@ -195,8 +195,7 @@ private:
 
     for (int i = 0; i < 50; i++) {
       float size = 64.0f + (rand() % 192);
-      getWorld()
-          .spawn()
+      m_world.spawn()
           .with(Transform{{static_cast<float>(rand() % 1280),
                            static_cast<float>(rand() % 720)},
                           {size, size},
