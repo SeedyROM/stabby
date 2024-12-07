@@ -11,6 +11,8 @@
 
 namespace ste {
 
+enum class BlendMode { None, Alpha, Additive, Multiply, Screen, Subtract };
+
 class Renderer2D {
 public:
   struct CreateInfo {
@@ -68,6 +70,10 @@ public:
   void resetStats();
   Statistics getStats() const;
 
+  // Blending
+  void setBlendMode(BlendMode mode);
+  BlendMode getBlendMode() const { return m_currentBlendMode; }
+
 private:
   struct Vertex {
     glm::vec3 position;
@@ -105,6 +111,9 @@ private:
   void flush();
   void startBatch();
   void waitForBuffer(uint32_t bufferIndex);
+
+  BlendMode m_currentBlendMode = BlendMode::Alpha;
+  void applyBlendMode(BlendMode mode);
 };
 
 } // namespace ste

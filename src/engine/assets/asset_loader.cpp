@@ -1,10 +1,10 @@
-#include "asset_manager.h"
+#include "asset_loader.h"
 
 namespace ste {
 
-std::optional<AssetManager> AssetManager::create(CreateInfo &createInfo) {
+std::optional<AssetLoader> AssetLoader::create(CreateInfo &createInfo) {
   try {
-    return AssetManager(createInfo.numThreads);
+    return AssetLoader(createInfo.numThreads);
   } catch (const std::exception &e) {
     createInfo.success = false;
     createInfo.errorMsg = e.what();
@@ -12,18 +12,18 @@ std::optional<AssetManager> AssetManager::create(CreateInfo &createInfo) {
   }
 }
 
-AssetManager::AssetManager(size_t numThreads)
+AssetLoader::AssetLoader(size_t numThreads)
     : m_threadPool(std::make_unique<ThreadPool>(numThreads)) {}
 
-AssetManager::~AssetManager() { clear(); }
+AssetLoader::~AssetLoader() { clear(); }
 
-AssetManager::AssetManager(AssetManager &&other) noexcept
+AssetLoader::AssetLoader(AssetLoader &&other) noexcept
     : m_threadPool(std::move(other.m_threadPool)),
       m_assets(std::move(other.m_assets)),
       m_totalAssets(other.m_totalAssets.load()),
       m_loadedAssets(other.m_loadedAssets.load()) {}
 
-AssetManager &AssetManager::operator=(AssetManager &&other) noexcept {
+AssetLoader &AssetLoader::operator=(AssetLoader &&other) noexcept {
   if (this != &other) {
     m_threadPool = std::move(other.m_threadPool);
 
@@ -38,7 +38,7 @@ AssetManager &AssetManager::operator=(AssetManager &&other) noexcept {
 }
 
 template <typename T>
-AssetHandle<T> AssetManager::load(const std::string &path) {
+AssetHandle<T> AssetLoader::load(const std::string &path) {
   std::lock_guard<std::mutex> lock(m_assetsMutex);
 
   auto it = m_assets.find(path);
@@ -100,7 +100,7 @@ AssetHandle<T> AssetManager::load(const std::string &path) {
 }
 
 template <typename T>
-std::future<AssetHandle<T>> AssetManager::loadAsync(const std::string &path) {
+std::future<AssetHandle<T>> AssetLoader::loadAsync(const std::string &path) {
   m_totalAssets++;
   return m_threadPool->enqueue([this, path]() -> AssetHandle<T> {
     try {
@@ -112,13 +112,13 @@ std::future<AssetHandle<T>> AssetManager::loadAsync(const std::string &path) {
   });
 }
 
-template <typename T> bool AssetManager::exists(const std::string &path) const {
+template <typename T> bool AssetLoader::exists(const std::string &path) const {
   std::lock_guard<std::mutex> lock(m_assetsMutex);
   auto it = m_assets.find(path);
   return it != m_assets.end() && it->second.isType<T>();
 }
 
-template <typename T> void AssetManager::remove(const std::string &path) {
+template <typename T> void AssetLoader::remove(const std::string &path) {
   std::lock_guard<std::mutex> lock(m_assetsMutex);
   auto it = m_assets.find(path);
   if (it != m_assets.end() && it->second.isType<T>()) {
@@ -130,36 +130,36 @@ template <typename T> void AssetManager::remove(const std::string &path) {
   }
 }
 
-void AssetManager::clear() {
+void AssetLoader::clear() {
   std::lock_guard<std::mutex> lock(m_assetsMutex);
   m_assets.clear();
   m_totalAssets = 0;
   m_loadedAssets = 0;
 }
 
-float AssetManager::getLoadProgress() const {
+float AssetLoader::getLoadProgress() const {
   size_t total = m_totalAssets.load();
   return total > 0 ? static_cast<float>(m_loadedAssets.load()) / total : 1.0f;
 }
 
 // Explicit template instantiations
-template AssetHandle<Shader> AssetManager::load<Shader>(const std::string &);
+template AssetHandle<Shader> AssetLoader::load<Shader>(const std::string &);
 template std::future<AssetHandle<Shader>>
-AssetManager::loadAsync<Shader>(const std::string &);
-template bool AssetManager::exists<Shader>(const std::string &) const;
-template void AssetManager::remove<Shader>(const std::string &);
+AssetLoader::loadAsync<Shader>(const std::string &);
+template bool AssetLoader::exists<Shader>(const std::string &) const;
+template void AssetLoader::remove<Shader>(const std::string &);
 
-template AssetHandle<Texture> AssetManager::load<Texture>(const std::string &);
+template AssetHandle<Texture> AssetLoader::load<Texture>(const std::string &);
 template std::future<AssetHandle<Texture>>
-AssetManager::loadAsync<Texture>(const std::string &);
-template bool AssetManager::exists<Texture>(const std::string &) const;
-template void AssetManager::remove<Texture>(const std::string &);
+AssetLoader::loadAsync<Texture>(const std::string &);
+template bool AssetLoader::exists<Texture>(const std::string &) const;
+template void AssetLoader::remove<Texture>(const std::string &);
 
 template AssetHandle<AudioFile>
-AssetManager::load<AudioFile>(const std::string &);
+AssetLoader::load<AudioFile>(const std::string &);
 template std::future<AssetHandle<AudioFile>>
-AssetManager::loadAsync<AudioFile>(const std::string &);
-template bool AssetManager::exists<AudioFile>(const std::string &) const;
-template void AssetManager::remove<AudioFile>(const std::string &);
+AssetLoader::loadAsync<AudioFile>(const std::string &);
+template bool AssetLoader::exists<AudioFile>(const std::string &) const;
+template void AssetLoader::remove<AudioFile>(const std::string &);
 
 } // namespace ste
