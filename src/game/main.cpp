@@ -1,47 +1,11 @@
-#include <algorithm>
-#include <filesystem>
 #include <iostream>
-#include <memory>
-
-#include <SDL2/SDL.h>
-#include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include <engine/engine.h>
 
-// Components to be used in the ECS
-struct Transform {
-  glm::vec2 position;
-  glm::vec2 scale;
-  float rotation;
-};
-
-struct Velocity {
-  float dx;
-  float dy;
-};
-
-struct Spinny {
-  float rotation;
-
-  Spinny() {
-    // Create a random float between -0.2 and 0.2
-    rotation =
-        (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f -
-         1.0f) *
-        0.8f;
-  }
-};
-
-struct TimeScaleState {
-  float currentScale = 1.0f;
-  float targetScale = 1.0f;
-  float transitionSpeed = 0.3f; // Adjust this to control smoothing speed
-};
+#include "game.h"
 
 int main(int argc, char *argv[]) {
-  // Create a window with the window builder.
+  // Create window
   auto window = ste::Window::builder()
                     .setTitle("Stabby : v0.0.1")
                     .setSize(1280, 720)
@@ -54,138 +18,45 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  // Setup the audio system
+  // Create core systems
   ste::AudioManager audio;
-
-  auto &audioEngine = audio.getEngine();
-
-  // Create a camera
-  ste::Camera2D camera(window->getWidth(), window->getHeight());
-
-  const float CAMERA_SPEED =
-      500.0f; // Adjust this to control camera acceleration
-  bool keys[SDL_NUM_SCANCODES] = {false};
-
-  // Create a renderer
   ste::Renderer2D::CreateInfo rendererCreateInfo;
   auto renderer = ste::Renderer2D::create(rendererCreateInfo);
   if (!renderer) {
-    std::cerr << "Failed to create renderer: " << rendererCreateInfo.errorMsg
-              << std::endl;
+    std::cerr << "Failed to create renderer!" << std::endl;
+    return -1;
+  }
+  ste::AssetLoader::CreateInfo assetCreateInfo;
+  auto assetLoader = ste::AssetLoader::create(assetCreateInfo);
+  if (!assetLoader) {
+    std::cerr << "Failed to create asset loader!" << std::endl;
     return -1;
   }
 
-  // Create an asset manager
-  ste::AssetManager::CreateInfo assetCreateInfo;
-  auto assetManager = ste::AssetManager::create(assetCreateInfo);
-  if (!assetManager) {
-    std::cerr << "Failed to create asset manager: " << assetCreateInfo.errorMsg
-              << std::endl;
-    return -1;
-  }
+  auto camera =
+      std::make_shared<ste::Camera2D>(window->getWidth(), window->getHeight());
 
-  // Load a texture
-  ste::AssetHandle<ste::Texture> textureHandle;
-  textureHandle = assetManager->load<ste::Texture>(
-      ste::getAssetPath("textures/albert.png"));
-  if (!textureHandle) {
-    std::cerr << "Failed to load texture" << std::endl;
-    return -1;
-  }
+  // Create and setup scene manager
+  ste::SceneManager sceneManager;
+  sceneManager.setRenderer(
+      std::make_shared<ste::Renderer2D>(std::move(*renderer)));
+  sceneManager.setAssetLoader(
+      std::make_shared<ste::AssetLoader>(std::move(*assetLoader)));
+  sceneManager.setCamera(camera);
+  sceneManager.setAudioManager(
+      std::make_shared<ste::AudioManager>(std::move(audio)));
 
-  // Load sounds
-  auto realTrapShit = assetManager->load<ste::AudioFile>(
-      ste::getAssetPath("sfx/real-trap-shit.wav"));
-  auto slowDown =
-      assetManager->load<ste::AudioFile>(ste::getAssetPath("sfx/slowdown.wav"));
-  auto music = assetManager->load<ste::AudioFile>(
-      ste::getAssetPath("music/custom-beat.ogg"));
+  // Register game scene
+  sceneManager.registerScene(
+      "game", []() { return std::make_shared<game::GameScene>(); });
 
-  // Enable alpha blending
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  // Create a world
-  ste::World world;
-  world.addResource(std::make_shared<TimeScaleState>());
+  // Start with game scene
+  sceneManager.pushScene("game");
 
   // Initialize game timer
   ste::GameTimer timer(60);
 
-  // Add time resource
-  world.addSystem("TimeScaleUpdate", [&timer, &audioEngine](ste::World &world) {
-    auto time = world.getResource<ste::Time>();
-    auto timeScale = world.getResource<TimeScaleState>();
-
-    // Smoothly interpolate between current and target scale
-    if (timeScale->currentScale != timeScale->targetScale) {
-      float delta = timeScale->transitionSpeed * time->deltaSeconds;
-
-      if (timeScale->currentScale < timeScale->targetScale) {
-        timeScale->currentScale =
-            std::min(timeScale->currentScale + delta, timeScale->targetScale);
-      } else {
-        timeScale->currentScale =
-            std::max(timeScale->currentScale - delta, timeScale->targetScale);
-      }
-
-      // Apply the smoothed scale
-      timer.setTimeScale(timeScale->currentScale);
-      audioEngine.setSpeed(timeScale->currentScale);
-    }
-  });
-
-  // Add physics system
-  world.addSystem("Physics", [](ste::World &world) {
-    auto time = world.getResource<ste::Time>();
-    ste::Query<Transform, Velocity, Spinny> query(&world);
-
-    for (auto [entity, transform, vel, spinny] : query) {
-      transform.position.x += vel.dx * time->deltaSeconds;
-      transform.position.y += vel.dy * time->deltaSeconds;
-      transform.rotation += spinny.rotation * time->deltaSeconds;
-
-      // Wrap around screen edges
-      if (transform.position.x < 0)
-        transform.position.x = 1280;
-      if (transform.position.x > 1280)
-        transform.position.x = 0;
-      if (transform.position.y < 0)
-        transform.position.y = 720;
-      if (transform.position.y > 720)
-        transform.position.y = 0;
-    }
-  });
-
-  // Create texture info from the handle
-  ste::Renderer2D::TextureInfo texInfo{textureHandle->getId(),
-                                       textureHandle->getWidth(),
-                                       textureHandle->getHeight()};
-
-  world.addSystem(
-      "Rendering",
-      [&renderer, &window, &texInfo](ste::World &world) {
-        ste::Query<Transform, Spinny> query(&world);
-
-        for (auto [entity, transform, spinny] : query) {
-
-          // Draw the textured quad
-          renderer->drawTexturedQuad(
-              {transform.position.x,
-               window->getHeight() -
-                   transform.position.y}, // Position (flip Y for OpenGL)
-              texInfo,
-              transform.scale,          // Size
-              {1.0f, 1.0f, 1.0f, 1.0f}, // Color tint
-              transform.rotation,       // Rotation
-              {0.0f, 0.0f, 1.0f, 1.0f}  // Texture coordinates (full texture)
-          );
-        }
-      },
-      0, true);
-
-  audioEngine.playMusic(music, true);
-
+  // Main game loop
   bool running = true;
   while (running) {
     timer.update();
@@ -194,117 +65,16 @@ int main(int argc, char *argv[]) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
         running = false;
-      } else if (event.type == SDL_KEYDOWN) {
-        auto timeScale = world.getResource<TimeScaleState>();
-
-        switch (event.key.keysym.sym) {
-        case SDLK_1:
-          timeScale->targetScale = 0.66f;
-          audioEngine.setSpeed(0.66f);
-          if (timeScale->currentScale != 0.66f)
-            audioEngine.playSound(slowDown);
-          break;
-        case SDLK_2:
-          timeScale->targetScale = 0.90f;
-          audioEngine.setSpeed(0.90f);
-          if (timeScale->currentScale != 0.90f)
-            audioEngine.playSound(slowDown);
-          break;
-        case SDLK_3:
-          timeScale->targetScale = 1.0f;
-          audioEngine.setSpeed(1.0f);
-          if (timeScale->currentScale != 1.0f)
-            audioEngine.playSound(slowDown);
-          break;
-        case SDLK_4:
-          timeScale->targetScale = 1.25f;
-          audioEngine.setSpeed(1.25f);
-          if (timeScale->currentScale != 1.25f)
-            audioEngine.playSound(slowDown);
-          break;
-        case SDLK_5:
-          timeScale->targetScale = 1.55f;
-          audioEngine.setSpeed(1.55f);
-          if (timeScale->currentScale != 1.55f)
-            audioEngine.playSound(slowDown);
-          break;
-        case SDLK_SPACE:
-          audioEngine.playSound(realTrapShit);
-
-          // Spawn textured entities
-          for (int i = 0; i < 50; i++) {
-            float size = 64.0f + (rand() % 192); // Random between 64 and 256
-            world.spawn()
-                .with(Transform{
-                    {static_cast<float>(rand() % 1280),
-                     static_cast<float>(rand() % 720)}, // Random position
-                    {size, size},                       // Random square size
-                    0.0f})
-                .with(Velocity{
-                    static_cast<float>(rand() % 100 - 50), // Random X velocity
-                    static_cast<float>(rand() % 100 - 50)  // Random Y velocity
-                })
-                .with(Spinny{});
-          }
-          break;
-        }
-
-        keys[event.key.keysym.scancode] = true;
       }
-      if (event.type == SDL_KEYUP) {
-        keys[event.key.keysym.scancode] = false;
-      }
+      sceneManager.handleEvent(event);
     }
 
-    // Update camera movement based on held keys
-    glm::vec2 moveDir(0.0f, 0.0f);
-    if (keys[SDL_SCANCODE_W])
-      moveDir.y += 1.0f;
-    if (keys[SDL_SCANCODE_S])
-      moveDir.y -= 1.0f;
-    if (keys[SDL_SCANCODE_A])
-      moveDir.x -= 1.0f;
-    if (keys[SDL_SCANCODE_D])
-      moveDir.x += 1.0f;
+    sceneManager.update(timer.getDeltaTime());
 
-    // Zoom control
-    if (keys[SDL_SCANCODE_Q]) {
-      camera.addZoom(-0.1f * timer.getDeltaTime());
-    }
-    if (keys[SDL_SCANCODE_E]) {
-      camera.addZoom(0.1f * timer.getDeltaTime());
-    }
-
-    // Normalize diagonal movement
-    if (glm::length(moveDir) > 0.0f) {
-      moveDir = glm::normalize(moveDir);
-    }
-
-    // Add velocity based on input
-    camera.addVelocity(moveDir * CAMERA_SPEED * timer.getDeltaTime());
-
-    // Update the camera
-    camera.update(timer.getDeltaTime());
-
-    // Update world with actual delta time
-    world.update(timer.getDeltaTime());
-
-    // Clear the screen
     window->clearColor(0.2f, 0.2f, 0.2f, 1.0f);
-
-    // Begin scene
-    renderer->beginScene(camera.getViewProjectionMatrix());
-
-    // Render world
-    world.render();
-
-    // End scene
-    renderer->endScene();
-
-    // Swap buffers
+    sceneManager.render();
     window->swapBuffers();
 
-    // Limit frame rate
     timer.limitFrameRate();
   }
 

@@ -34,7 +34,7 @@ private:
   std::shared_ptr<T> m_asset;
 };
 
-class AssetManager {
+class AssetLoader {
 public:
   struct CreateInfo {
     std::string errorMsg;
@@ -42,13 +42,13 @@ public:
     size_t numThreads = std::thread::hardware_concurrency();
   };
 
-  static std::optional<AssetManager> create(CreateInfo &createInfo);
+  static std::optional<AssetLoader> create(CreateInfo &createInfo);
 
-  ~AssetManager();
-  AssetManager(const AssetManager &) = delete;
-  AssetManager &operator=(const AssetManager &) = delete;
-  AssetManager(AssetManager &&other) noexcept;
-  AssetManager &operator=(AssetManager &&other) noexcept;
+  ~AssetLoader();
+  AssetLoader(const AssetLoader &) = delete;
+  AssetLoader &operator=(const AssetLoader &) = delete;
+  AssetLoader(AssetLoader &&other) noexcept;
+  AssetLoader &operator=(AssetLoader &&other) noexcept;
 
   // Synchronous loading
   template <typename T> AssetHandle<T> load(const std::string &path);
@@ -70,7 +70,7 @@ public:
   float getLoadProgress() const;
 
 private:
-  explicit AssetManager(size_t numThreads);
+  explicit AssetLoader(size_t numThreads);
 
   struct AssetEntry {
     std::shared_ptr<void> asset;

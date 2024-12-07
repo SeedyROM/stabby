@@ -7,7 +7,7 @@
 
 #include "audio_file.h"
 #include "audio_queue.h"
-#include "engine/assets/asset_manager.h"
+#include "engine/assets/asset_loader.h"
 
 namespace ste {
 

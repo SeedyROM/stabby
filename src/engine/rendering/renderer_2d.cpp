@@ -190,6 +190,7 @@ Renderer2D &Renderer2D::operator=(Renderer2D &&other) noexcept {
 void Renderer2D::beginScene(const glm::mat4 &viewProjection) {
   m_viewProjection = viewProjection;
   startBatch();
+  setBlendMode(BlendMode::Alpha);
 }
 
 void Renderer2D::endScene() { flush(); }
@@ -391,5 +392,53 @@ void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
 void Renderer2D::resetStats() { m_stats = Statistics(); }
 
 Renderer2D::Statistics Renderer2D::getStats() const { return m_stats; }
+
+void Renderer2D::setBlendMode(BlendMode mode) {
+  if (m_currentBlendMode != mode) {
+    m_currentBlendMode = mode;
+    applyBlendMode(mode);
+  }
+}
+
+void Renderer2D::applyBlendMode(BlendMode mode) {
+  switch (mode) {
+  case BlendMode::None:
+    glDisable(GL_BLEND);
+    break;
+
+  case BlendMode::Alpha:
+    glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glBlendEquation(GL_FUNC_ADD);
+    glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
+                        GL_ONE_MINUS_SRC_ALPHA);
+    break;
+
+  case BlendMode::Additive:
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glBlendEquation(GL_FUNC_ADD);
+    break;
+
+  case BlendMode::Multiply:
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_DST_COLOR, GL_ZERO);
+    glBlendEquation(GL_FUNC_ADD);
+    break;
+
+  case BlendMode::Screen:
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+    glBlendEquation(GL_FUNC_ADD);
+    break;
+
+  case BlendMode::Subtract:
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+    break;
+  }
+}
 
 } // namespace ste
