@@ -16,6 +16,8 @@ A modern 2D hack 'n' slash game built with a custom C++ game engine. This projec
 - [x] Resource loading
 - [x] Audio system basics
 - [x] Dynamic audio playback system with sound effects, music and speed control
+- [x] Input manager
+- [x] Simple scene management
 
 ### In Progress
 
@@ -68,6 +70,14 @@ The game is built on a custom C++ engine (STE - Stabby Engine) designed for high
 - OpenGL context management
 - Event handling
 - Resolution and display mode control
+
+### Input Handling
+
+- Keyboard and mouse input
+
+### Scene Management
+
+- Scene stack management
 
 ## Technical Implementation
 
