@@ -16,19 +16,25 @@ const char *vertexShaderSource = R"(
         layout (location = 2) in vec2 a_TexCoord;
         layout (location = 3) in float a_TexIndex;
         layout (location = 4) in float a_TilingFactor;
-        
+        layout (location = 5) in float a_OutlineThickness;
+        layout (location = 6) in vec4 a_OutlineColor;
+
         uniform mat4 u_ViewProjection;
-        
+
         out vec4 v_Color;
         out vec2 v_TexCoord;
         out float v_TexIndex;
         out float v_TilingFactor;
-        
+        out float v_OutlineThickness;
+        out vec4 v_OutlineColor;
+
         void main() {
             v_Color = a_Color;
             v_TexCoord = a_TexCoord;
             v_TexIndex = a_TexIndex;
             v_TilingFactor = a_TilingFactor;
+            v_OutlineThickness = a_OutlineThickness;
+            v_OutlineColor = a_OutlineColor;
             gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
         }
     )";
@@ -36,14 +42,16 @@ const char *vertexShaderSource = R"(
 const char *fragmentShaderSource = R"(
         #version 330 core
         out vec4 FragColor;
-        
+
         in vec4 v_Color;
         in vec2 v_TexCoord;
         in float v_TexIndex;
         in float v_TilingFactor;
-        
+        in float v_OutlineThickness;
+        in vec4 v_OutlineColor;
+
         uniform sampler2D u_Textures[16];
-        
+
         void main() {
             vec4 texColor = v_Color;
             
@@ -52,7 +60,18 @@ const char *fragmentShaderSource = R"(
                 texColor *= texture(u_Textures[index], v_TexCoord * v_TilingFactor);
             }
             
-            FragColor = texColor;
+            // Calculate distance from edge
+            vec2 distFromCenter = abs(v_TexCoord - 0.5) * 2.0;
+            float maxDist = max(distFromCenter.x, distFromCenter.y);
+            
+            // Define outline edge
+            float outlineEdge = 1.0 - v_OutlineThickness;
+            
+            if (maxDist > outlineEdge && v_OutlineThickness > 0.0) {
+                FragColor = v_OutlineColor;
+            } else {
+                FragColor = texColor;
+            }
         }
     )";
 } // namespace
@@ -105,6 +124,14 @@ std::optional<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
   glEnableVertexAttribArray(4);
   glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                         (const void *)offsetof(Vertex, tilingFactor));
+
+  glEnableVertexAttribArray(5);
+  glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, outlineThickness));
+
+  glEnableVertexAttribArray(6);
+  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)offsetof(Vertex, outlineColor));
 
   // Create and set up index buffer
   uint32_t ibo;
@@ -274,7 +301,9 @@ void Renderer2D::flush() {
 }
 
 void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
-                          const glm::vec4 &color, float rotation) {
+                          const glm::vec4 &color, float rotation,
+                          float outlineThickness,
+                          const glm::vec4 &outlineColor) {
   if (m_indexCount >= MAX_INDICES) {
     flush();
     startBatch();
@@ -291,6 +320,8 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
   m_vertexBufferPtr->texCoords = {0.0f, 0.0f};
   m_vertexBufferPtr->texIndex = -1.0f;
   m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr->outlineThickness = outlineThickness;
+  m_vertexBufferPtr->outlineColor = outlineColor;
   m_vertexBufferPtr++;
 
   m_vertexBufferPtr->position = transform * glm::vec4(0.5f, -0.5f, 0.0f, 1.0f);
@@ -298,6 +329,8 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
   m_vertexBufferPtr->texCoords = {1.0f, 0.0f};
   m_vertexBufferPtr->texIndex = -1.0f;
   m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr->outlineThickness = outlineThickness;
+  m_vertexBufferPtr->outlineColor = outlineColor;
   m_vertexBufferPtr++;
 
   m_vertexBufferPtr->position = transform * glm::vec4(0.5f, 0.5f, 0.0f, 1.0f);
@@ -305,6 +338,8 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
   m_vertexBufferPtr->texCoords = {1.0f, 1.0f};
   m_vertexBufferPtr->texIndex = -1.0f;
   m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr->outlineThickness = outlineThickness;
+  m_vertexBufferPtr->outlineColor = outlineColor;
   m_vertexBufferPtr++;
 
   m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, 0.5f, 0.0f, 1.0f);
@@ -312,6 +347,8 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
   m_vertexBufferPtr->texCoords = {0.0f, 1.0f};
   m_vertexBufferPtr->texIndex = -1.0f;
   m_vertexBufferPtr->tilingFactor = 1.0f;
+  m_vertexBufferPtr->outlineThickness = outlineThickness;
+  m_vertexBufferPtr->outlineColor = outlineColor;
   m_vertexBufferPtr++;
 
   m_indexCount += 6;

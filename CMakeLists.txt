@@ -17,3 +17,4 @@ find_package(Vorbis REQUIRED)
 # Add the library/game directories
 add_subdirectory(src/engine)
 add_subdirectory(src/game)
+add_subdirectory(src/editor)
