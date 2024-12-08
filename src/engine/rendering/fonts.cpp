@@ -156,9 +156,9 @@ bool FontAtlas::addGlyph(uint32_t codepoint, const uint8_t *bitmap,
   // Store glyph info
   GlyphInfo info;
   info.u0 = static_cast<float>(x) / m_width;
-  info.v0 = static_cast<float>(y) / m_height;
+  info.v0 = static_cast<float>(y + height) / m_height; // Flip v0 and v1
+  info.v1 = static_cast<float>(y) / m_height;
   info.u1 = static_cast<float>(x + width) / m_width;
-  info.v1 = static_cast<float>(y + height) / m_height;
   info.bearingX = bearingX;
   info.bearingY = bearingY;
   info.advance = advance;
@@ -359,6 +359,7 @@ void TextRenderer::renderText(Font &font, const std::string &text,
   glm::vec2 pen = position;
   uint32_t prevChar = 0;
 
+  // TODO(SeedyROM): Remove this later, this is awful!!!
   for (char c : text) {
     uint32_t codepoint = static_cast<uint32_t>(c);
     if (!font.getGlyphInfo(codepoint)) {
