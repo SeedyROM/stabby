@@ -94,6 +94,7 @@ bool FontAtlas::findSpace(uint32_t width, uint32_t height, uint32_t &x,
 bool FontAtlas::addGlyph(uint32_t codepoint, const uint8_t *bitmap,
                          uint32_t width, uint32_t height, int bearingX,
                          int bearingY, int advance) {
+
   if (m_textureId == 0) {
     std::cerr << "Invalid texture ID (zero)" << std::endl;
     return false;
@@ -348,6 +349,20 @@ void TextRenderer::renderText(Font &font, const std::string &text,
                               const glm::vec2 &position,
                               const glm::vec4 &color) {
 
+  GLuint texId = font.getAtlasTexture();
+  GLboolean isValid = glIsTexture(texId);
+  if (!isValid) {
+    std::cerr << "Font texture invalid at start of renderText" << std::endl;
+  }
+
+  // TODO(SeedyROM): Stop caching glyphs here, do it elsewhere
+  for (char c : text) {
+    uint32_t codepoint = static_cast<uint32_t>(c);
+    if (!font.getGlyphInfo(codepoint)) {
+      font.cacheGlyph(codepoint);
+    }
+  }
+
   GLint blendSrc, blendDst;
   glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
   glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
@@ -358,14 +373,6 @@ void TextRenderer::renderText(Font &font, const std::string &text,
 
   glm::vec2 pen = position;
   uint32_t prevChar = 0;
-
-  // TODO(SeedyROM): Remove this later, this is awful!!!
-  for (char c : text) {
-    uint32_t codepoint = static_cast<uint32_t>(c);
-    if (!font.getGlyphInfo(codepoint)) {
-      font.cacheGlyph(codepoint);
-    }
-  }
 
   for (char c : text) {
     uint32_t codepoint = static_cast<uint32_t>(c);

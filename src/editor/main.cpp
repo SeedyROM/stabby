@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  auto font = assetLoader->load<ste::Font>("assets/fonts/better-vcr.ttf@24");
+  auto font = assetLoader->load<ste::Font>("assets/fonts/better-vcr.ttf@16");
 
   ste::Renderer2D::CreateInfo rendererCreateInfo;
   auto renderer = ste::Renderer2D::create(rendererCreateInfo);
@@ -74,8 +74,8 @@ int main(int argc, char *argv[]) {
     cursorPosition.y = std::floor(cursorPosition.y / gridSize.y) * gridSize.y;
 
     // Draw the a font
-    textRenderer.renderText(*font, "Hello, Asset-Managed Font!",
-                            {100.0f, window->getHeight() - 100.0f},
+    std::string fps = "FPS: " + std::to_string(timer.getFPS());
+    textRenderer.renderText(*font, fps, {12.0f, window->getHeight() - 28.0f},
                             {1.0f, 1.0f, 1.0f, 1.0f});
 
     // Draw a white quad
