@@ -243,9 +243,9 @@ void Renderer2D::waitForBuffer(uint32_t bufferIndex) {
 }
 
 void Renderer2D::startBatch() {
+  m_lastTextureId = 0;
   m_indexCount = 0;
   m_vertexBufferPtr = m_vertexBufferBase;
-  m_lastTextureId = 0; // Reset texture cache
 }
 
 void Renderer2D::flush() {
@@ -399,11 +399,10 @@ void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
   };
 
   // Bind texture only once per batch if possible
-  static uint32_t lastTextureId = 0;
-  if (texture.id != lastTextureId) {
+  if (texture.id != m_lastTextureId) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
-    lastTextureId = texture.id;
+    m_lastTextureId = texture.id;
   }
 
   // SIMD-friendly vertex processing

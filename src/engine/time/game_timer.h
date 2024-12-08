@@ -24,7 +24,6 @@ public:
   void setPaused(bool paused);
   void togglePause() { setPaused(!m_pauseState); }
   void setTimeScale(float scale);
-  void setLogFPSStats(bool show) { m_logFPSCounter = show; }
 
   // Preset time modifications
   void setSlowMotion() { setTimeScale(0.5f); }
@@ -51,7 +50,6 @@ private:
   int m_frameCount;
   float m_fpsTimer;
   float m_currentFPS;
-  bool m_logFPSCounter;
 
   // Time control
   bool m_pauseState;

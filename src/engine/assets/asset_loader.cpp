@@ -89,6 +89,28 @@ AssetHandle<T> AssetLoader::load(const std::string &path) {
         m_totalAssets--;
         throw std::runtime_error(createInfo.errorMsg);
       }
+    } else if constexpr (std::is_same_v<T, Font>) {
+      Font::CreateInfo createInfo;
+
+      // Get the font size from the path
+      size_t sizePos = path.find('@');
+      if (sizePos != std::string::npos) {
+        createInfo.size = std::stoi(path.substr(sizePos + 1));
+      }
+
+      // Strip the font size from the path
+      std::string actualPath =
+          (sizePos != std::string::npos) ? path.substr(0, sizePos) : path;
+
+      if (auto font = Font::createFromFile(actualPath, createInfo)) {
+        auto asset = std::make_shared<Font>(std::move(*font));
+        m_assets.try_emplace(path, asset, 1);
+        m_loadedAssets++;
+        return AssetHandle<T>(asset);
+      } else {
+        m_totalAssets--;
+        throw std::runtime_error(createInfo.errorMsg);
+      }
     } else {
       // Asset type-specific loading logic here
       throw std::runtime_error("Unsupported asset type");
@@ -161,5 +183,11 @@ template std::future<AssetHandle<AudioFile>>
 AssetLoader::loadAsync<AudioFile>(const std::string &);
 template bool AssetLoader::exists<AudioFile>(const std::string &) const;
 template void AssetLoader::remove<AudioFile>(const std::string &);
+
+template AssetHandle<Font> AssetLoader::load<Font>(const std::string &);
+template std::future<AssetHandle<Font>>
+AssetLoader::loadAsync<Font>(const std::string &);
+template bool AssetLoader::exists<Font>(const std::string &) const;
+template void AssetLoader::remove<Font>(const std::string &);
 
 } // namespace ste
