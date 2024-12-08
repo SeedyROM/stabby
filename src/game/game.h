@@ -22,8 +22,8 @@ struct Spinny {
 
   Spinny() {
     rotation =
-        (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f -
-         1.0f) *
+        (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f -
+         10.0f) *
         0.8f;
   }
 };
