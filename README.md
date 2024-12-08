@@ -55,6 +55,7 @@ The game is built on a custom C++ engine (STE - Stabby Engine) designed for high
 - Shader management
 - Texture support
 - Efficient sprite rendering
+- Font loading/rendering with Freetype
 
 #### Audio System
 
