@@ -6,9 +6,7 @@ GameTimer::GameTimer(int targetFPS)
     : m_targetFPS(targetFPS), m_targetFrameTime(1.0f / targetFPS),
       m_lastFrameTime(SDL_GetTicks64()), m_frameCount(0), m_fpsTimer(0.0f),
       m_currentFPS(0.0f), m_deltaTime(0.0f), m_pauseState(false),
-      m_timeScale(1.0f), m_totalTime(0.0f) {
-  m_lastFrameTime = SDL_GetTicks64();
-}
+      m_timeScale(1.0f), m_totalTime(0.0f) {}
 
 void GameTimer::update() {
   if (m_pauseState) {
@@ -17,18 +15,29 @@ void GameTimer::update() {
     return;
   }
 
-  float rawDeltaTime = calculateDeltaTime();
-  m_deltaTime = rawDeltaTime * m_timeScale;
+  Uint64 currentTime = SDL_GetTicks64();
+  float rawDeltaTime = (currentTime - m_lastFrameTime) / 1000.0f;
+  m_lastFrameTime = currentTime;
 
+  m_deltaTime = rawDeltaTime * m_timeScale;
   capDeltaTime(m_deltaTime);
   m_totalTime += m_deltaTime;
 
   updateFPSCounter(rawDeltaTime);
 }
 
-float GameTimer::calculateDeltaTime() const {
-  Uint64 currentTime = SDL_GetTicks64();
-  return (currentTime - m_lastFrameTime) / 1000.0f;
+void GameTimer::updateFPSCounter(float unscaledDeltaTime) {
+  m_frameCount++;
+  m_fpsTimer += unscaledDeltaTime;
+
+  if (m_fpsTimer >= FPS_UPDATE_INTERVAL) {
+    // Calculate FPS based on the actual time elapsed
+    m_currentFPS = static_cast<float>(m_frameCount) / m_fpsTimer;
+
+    // Reset counters
+    m_frameCount = 0;
+    m_fpsTimer = 0.0f;
+  }
 }
 
 void GameTimer::capDeltaTime(float &dt) const {
@@ -37,24 +46,18 @@ void GameTimer::capDeltaTime(float &dt) const {
   }
 }
 
-void GameTimer::updateFPSCounter(float unscaledDeltaTime) {
-  m_frameCount++;
-  m_fpsTimer += unscaledDeltaTime;
+void GameTimer::limitFrameRate() {
+  Uint64 currentTime = SDL_GetTicks64();
+  float frameTime = (currentTime - m_lastFrameTime) / 1000.0f;
 
-  if (m_fpsTimer >= FPS_UPDATE_INTERVAL) {
-    m_currentFPS = m_frameCount / m_fpsTimer;
-    m_frameCount = 0;
-    m_fpsTimer = 0.0f;
+  if (frameTime < m_targetFrameTime) {
+    SDL_Delay(static_cast<Uint32>((m_targetFrameTime - frameTime) * 1000.0f));
   }
 }
 
-void GameTimer::limitFrameRate() {
-  if (!m_pauseState) {
-    float frameTime = calculateDeltaTime();
-    if (frameTime < m_targetFrameTime) {
-      SDL_Delay(static_cast<Uint32>((m_targetFrameTime - frameTime) * 1000.0f));
-    }
-  }
+float GameTimer::calculateDeltaTime() const {
+  Uint64 currentTime = SDL_GetTicks64();
+  return (currentTime - m_lastFrameTime) / 1000.0f;
 }
 
 void GameTimer::setPaused(bool paused) {
@@ -63,6 +66,7 @@ void GameTimer::setPaused(bool paused) {
     if (paused) {
       m_deltaTime = 0.0f;
     }
+    m_lastFrameTime = SDL_GetTicks64();
   }
 }
 
