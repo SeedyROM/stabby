@@ -10,6 +10,7 @@ target_link_libraries(engine PUBLIC SDL2_image::SDL2_image)
 target_link_libraries(engine PUBLIC glm::glm)
 target_link_libraries(engine PUBLIC glad::glad)
 target_link_libraries(engine PUBLIC vorbis::vorbis)
+target_link_libraries(engine PUBLIC Freetype::Freetype)
 
 # For macOS
 if(APPLE)

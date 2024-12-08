@@ -24,6 +24,8 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  auto font = assetLoader->load<ste::Font>("assets/fonts/better-vcr.ttf@24");
+
   ste::Renderer2D::CreateInfo rendererCreateInfo;
   auto renderer = ste::Renderer2D::create(rendererCreateInfo);
   if (!renderer) {
@@ -31,6 +33,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  ste::TextRenderer textRenderer(*renderer);
   ste::AudioManager audioManager;
   ste::InputManager inputManager;
   ste::Camera2D camera(window->getWidth(), window->getHeight());
@@ -69,6 +72,11 @@ int main(int argc, char *argv[]) {
     // Lock the cursor to a grid
     cursorPosition.x = std::floor(cursorPosition.x / gridSize.x) * gridSize.x;
     cursorPosition.y = std::floor(cursorPosition.y / gridSize.y) * gridSize.y;
+
+    // Draw the a font
+    textRenderer.renderText(*font, "Hello, Asset-Managed Font!",
+                            {100.0f, window->getHeight() - 100.0f},
+                            {1.0f, 1.0f, 1.0f, 1.0f});
 
     // Draw a white quad
     renderer->drawQuad({cursorPosition.x + (gridSize.x / 2.0f),
