@@ -18,6 +18,7 @@ A modern 2D hack 'n' slash game built with a custom C++ game engine. This projec
 - [x] Dynamic audio playback system with sound effects, music and speed control
 - [x] Input manager
 - [x] Simple scene management
+- [x] Font rendering
 
 ### In Progress
 
