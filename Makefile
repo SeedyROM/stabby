@@ -24,6 +24,8 @@ CMAKE_RELEASE_MARKER := $(MARKER_DIR)/cmake-release
 # Executables
 DEBUG_EXE := build/RelWithDebInfo/src/game/stabby
 RELEASE_EXE := build/Release/src/game/stabby
+DEBUG_EDITOR := build/RelWithDebInfo/src/editor/editor
+RELEASE_EDITOR := build/Release/src/editor/editor
 
 # Dependencies targets
 $(DEPS_DEBUG_MARKER): conanfile.txt
@@ -53,13 +55,19 @@ $(CMAKE_RELEASE_MARKER): $(DEPS_RELEASE_MARKER) $(CMAKE_FILES)
 
 # Build targets
 $(DEBUG_EXE): $(CMAKE_DEBUG_MARKER) $(SRCS)
-	cmake --build build/RelWithDebInfo
+	cmake --build build/RelWithDebInfo --target stabby
 
 $(RELEASE_EXE): $(CMAKE_RELEASE_MARKER) $(SRCS)
-	cmake --build build/Release
+	cmake --build build/Release --target stabby
 
-build-dev: $(DEBUG_EXE)
-build-release: $(RELEASE_EXE)
+$(DEBUG_EDITOR): $(CMAKE_DEBUG_MARKER) $(SRCS)
+	cmake --build build/RelWithDebInfo --target editor
+
+$(RELEASE_EDITOR): $(CMAKE_RELEASE_MARKER) $(SRCS)
+	cmake --build build/Release --target editor
+
+build-dev: $(DEBUG_EXE) $(DEBUG_EDITOR)
+build-release: $(RELEASE_EXE) $(RELEASE_EDITOR)
 build: build-dev
 
 # Run targets
@@ -71,13 +79,23 @@ run-release: $(RELEASE_EXE)
 
 run: run-debug
 
+run-editor-debug: $(DEBUG_EDITOR)
+	./$(DEBUG_EDITOR)
+
+run-editor-release: $(RELEASE_EDITOR)
+	./$(RELEASE_EDITOR)
+
+run-editor: run-editor-debug
+
 # Clean target
 clean:
 	rm -rf build $(MARKER_DIR)
 
 play: run
 
-.PHONY: deps-debug deps-release deps build-dev build-release build run-debug run-release run play clean help
+.PHONY: deps-debug deps-release deps build-dev build-release build \
+        run-debug run-release run run-editor-debug run-editor-release \
+        run-editor play clean help
 
 help:
 	@echo "Usage: make [target]"
@@ -86,17 +104,19 @@ help:
 	@echo "  deps-debug    - Install debug dependencies using Conan"
 	@echo "  deps-release  - Install release dependencies using Conan"
 	@echo "  deps         - Install debug dependencies (default)"
-	@echo "  build-dev    - Build debug version"
-	@echo "  build-release- Build release version"
+	@echo "  build-dev    - Build debug version of game and editor"
+	@echo "  build-release- Build release version of game and editor"
 	@echo "  build       - Build debug version (default)"
 	@echo "  run         - Build and run the game"
+	@echo "  run-editor  - Build and run the editor"
 	@echo "  clean       - Remove build directory"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make deps    - Install dependencies"
 	@echo "  make build   - Build debug version"
 	@echo "  make run     - Build and run the game"
-	@echo "  make play   -  Build and run the game"
+	@echo "  make run-editor - Build and run the editor"
+	@echo "  make play    - Build and run the game"
 	@echo "  make clean   - Remove build directory"
 
 .DEFAULT_GOAL := help

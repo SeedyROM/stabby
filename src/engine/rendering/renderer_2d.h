@@ -48,11 +48,13 @@ public:
   // Primitive rendering methods
   void drawQuad(const glm::vec2 &position, const glm::vec2 &size = {1.0f, 1.0f},
                 const glm::vec4 &color = {1.0f, 1.0f, 1.0f, 1.0f},
-                float rotation = 0.0f);
+                float rotation = 0.0f, float outlineThickness = 0.0f,
+                const glm::vec4 &outlineColor = {0.0f, 0.0f, 0.0f, 1.0f});
 
   void drawQuad(const glm::vec3 &position, const glm::vec2 &size = {1.0f, 1.0f},
                 const glm::vec4 &color = {1.0f, 1.0f, 1.0f, 1.0f},
-                float rotation = 0.0f);
+                float rotation = 0.0f, float outlineThickness = 0.0f,
+                const glm::vec4 &outlineColor = {0.0f, 0.0f, 0.0f, 1.0f});
 
   void drawTexturedQuad(const glm::vec2 &position, const TextureInfo &texture,
                         const glm::vec2 &size = {1.0f, 1.0f},
@@ -81,6 +83,8 @@ private:
     glm::vec2 texCoords;
     float texIndex;
     float tilingFactor;
+    float outlineThickness;
+    glm::vec4 outlineColor;
   };
 
   static constexpr uint32_t MAX_QUADS = 10000;
