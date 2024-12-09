@@ -1,3 +1,4 @@
+// ecs.cpp
 #include "ecs.h"
 
 namespace ste {
@@ -17,13 +18,20 @@ Entity World::spawn() {
     activeEntities.resize(nextEntityId + 1);
   }
   activeEntities[nextEntityId] = true;
-  return Entity(this, nextEntityId++);
+  Entity entity(this, nextEntityId++);
+  emit(EntityCreated{entity});
+  return entity;
 }
 
 void World::destroy(Entity entity) {
   if (entity.getId() < activeEntities.size()) {
+    emit(EntityDestroyed{entity});
+
     activeEntities[entity.getId()] = false;
-    for (auto &[_, array] : components) {
+    for (auto &[typeId, array] : components) {
+      if (array->has(entity.getId())) {
+        emit(ComponentRemoved{entity, array->getTypeInfo()});
+      }
       array->remove(entity.getId());
     }
   }
@@ -53,8 +61,8 @@ void World::addSystem(const std::string &label,
                       std::function<void(World &)> func, int priority,
                       bool isRender) {
   auto &systems = isRender ? renderSystems : updateSystems;
-  systems.push_back(
-      {.func = std::move(func), .priority = priority, .label = label});
+  systems.push_back(SystemInfo{
+      .func = std::move(func), .priority = priority, .label = label});
 }
 
 } // namespace ste

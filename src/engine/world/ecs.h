@@ -1,6 +1,8 @@
+// ecs.h
 #pragma once
 
 #include <algorithm>
+#include <any>
 #include <bitset>
 #include <concepts>
 #include <functional>
@@ -21,12 +23,54 @@ template <typename T>
 concept Component =
     std::is_standard_layout_v<T> && std::is_trivially_copyable_v<T>;
 
+// Event concept
+template <typename T>
+concept Event = std::is_standard_layout_v<T> && std::is_trivially_copyable_v<T>;
+
 // Forward declarations
 template <typename... Components>
 requires(Component<Components> &&...) class Query;
 
 class World;
 class Entity;
+
+// Event listener type
+template <Event T> using EventListener = std::function<void(const T &)>;
+
+// Entity declaration
+class Entity {
+  size_t id;
+  World *world;
+  std::bitset<MAX_COMPONENTS> mask;
+
+  template <typename... Ts>
+  requires(Component<Ts> &&...) friend class Query;
+  friend class World;
+
+  Entity(World *world, size_t id);
+
+public:
+  size_t getId() const;
+  template <Component T> Entity &with(T component);
+  template <Component T> T &get();
+  template <Component T> bool has() const;
+};
+
+// Built-in events
+struct EntityCreated {
+  Entity entity;
+};
+struct EntityDestroyed {
+  Entity entity;
+};
+struct ComponentAdded {
+  Entity entity;
+  std::type_index componentType;
+};
+struct ComponentRemoved {
+  Entity entity;
+  std::type_index componentType;
+};
 
 // Time resource
 class Time {
@@ -59,49 +103,29 @@ struct SystemInfo {
 
 bool operator<(const SystemInfo &a, const SystemInfo &b);
 
-// Entity declaration (implementations below)
-class Entity {
-  size_t id;
-  World *world;
-  std::bitset<MAX_COMPONENTS> mask;
-
-  template <typename... Ts>
-  requires(Component<Ts> &&...) friend class Query;
-  friend class World;
-
-  Entity(World *world, size_t id);
-
-public:
-  size_t getId() const;
-  template <Component T> Entity &with(T component);
-  template <Component T> T &get();
-  template <Component T> bool has() const;
-};
-
 // Component storage base class
 class IComponentArray {
 public:
   virtual ~IComponentArray() = default;
   virtual void remove(size_t entityId) = 0;
   virtual size_t size() const = 0;
+  virtual bool has(size_t entityId) const = 0;
+  virtual const std::type_info &getTypeInfo() const = 0;
 };
 
 // Component storage template
 template <Component T> class ComponentArray : public IComponentArray {
 public:
-  // Use a sparse set implementation for better cache locality
   void insert(size_t entityId, T component) {
     if (entityId >= sparse.size()) {
       sparse.resize(entityId + 1, -1);
     }
 
-    // Check if entity already has component
     if (sparse[entityId] != -1) {
       dense_components[sparse[entityId]] = component;
       return;
     }
 
-    // Add new component
     sparse[entityId] = dense_components.size();
     dense_components.push_back(component);
     dense_entities.push_back(entityId);
@@ -114,16 +138,17 @@ public:
     return dense_components[sparse[entityId]];
   }
 
-  bool has(size_t entityId) const {
+  bool has(size_t entityId) const override {
     return entityId < sparse.size() && sparse[entityId] != -1;
   }
+
+  const std::type_info &getTypeInfo() const override { return typeid(T); }
 
   void remove(size_t entityId) override {
     if (entityId >= sparse.size() || sparse[entityId] == -1) {
       return;
     }
 
-    // Swap and pop for O(1) removal
     size_t dense_idx = sparse[entityId];
     size_t last_idx = dense_components.size() - 1;
 
@@ -140,15 +165,14 @@ public:
 
   size_t size() const override { return dense_components.size(); }
 
-  // Iterator access for systems
   auto begin() { return dense_components.begin(); }
   auto end() { return dense_components.end(); }
   const auto &entities() const { return dense_entities; }
 
 private:
-  std::vector<T> dense_components;    // Packed array of components
-  std::vector<size_t> dense_entities; // Corresponding entity IDs
-  std::vector<int> sparse;            // Entity ID to dense index mapping
+  std::vector<T> dense_components;
+  std::vector<size_t> dense_entities;
+  std::vector<int> sparse;
 };
 
 // World class
@@ -162,12 +186,20 @@ public:
 
   template <Component T> void setComponent(size_t entityId, T component) {
     size_t componentId = ComponentId::get<T>();
-    if (!components.contains(componentId)) {
+    bool isNewComponent = !components.contains(componentId);
+
+    if (isNewComponent) {
       components[componentId] = std::make_unique<ComponentArray<T>>();
     }
+
     auto *array =
         static_cast<ComponentArray<T> *>(components[componentId].get());
+    bool hadComponent = array->has(entityId);
     array->insert(entityId, component);
+
+    if (!hadComponent) {
+      emit(ComponentAdded{Entity(this, entityId), std::type_index(typeid(T))});
+    }
   }
 
   template <Component T> T &getComponent(size_t entityId) {
@@ -203,19 +235,35 @@ public:
   void addSystem(const std::string &label, std::function<void(World &)> func,
                  int priority = 0, bool isRender = false);
 
+  // Event system
+  template <Event T> void subscribe(EventListener<T> listener) {
+    auto &listeners = eventListeners[std::type_index(typeid(T))];
+    listeners.push_back(std::move(listener));
+  }
+
+  template <Event T> void emit(const T &event) {
+    auto it = eventListeners.find(std::type_index(typeid(T)));
+    if (it != eventListeners.end()) {
+      for (const auto &listener : it->second) {
+        std::any_cast<EventListener<T>>(listener)(event);
+      }
+    }
+  }
+
 private:
   std::vector<bool> activeEntities;
   std::unordered_map<size_t, std::unique_ptr<IComponentArray>> components;
   std::unordered_map<std::type_index, std::shared_ptr<void>> resources;
   std::vector<SystemInfo> updateSystems;
   std::vector<SystemInfo> renderSystems;
+  std::unordered_map<std::type_index, std::vector<std::any>> eventListeners;
   size_t nextEntityId = 0;
 
   template <typename... Ts>
   requires(Component<Ts> &&...) friend class Query;
 };
 
-// Entity template implementations (after World is defined)
+// Entity template implementations
 template <Component T> Entity &Entity::with(T component) {
   world->setComponent(id, component);
   mask.set(ComponentId::get<T>());
@@ -228,17 +276,16 @@ template <Component T> bool Entity::has() const {
   return world->hasComponent<T>(id);
 }
 
-// Query class (needs full World definition)
+// Query class implementation
 template <typename... Components>
 requires(Component<Components> &&...) class Query {
-  friend class World; // Add friendship to access Entity constructor
+  friend class World;
+
 public:
   Query(World *world) : world(world) {
-    // Find the component array with the smallest size for optimal iteration
     size_t minSize = std::numeric_limits<size_t>::max();
     size_t smallestComponentId = 0;
 
-    // Get all component IDs and find the smallest array
     std::array<size_t, sizeof...(Components)> componentIds = {
         ComponentId::get<Components>()...};
 
@@ -251,32 +298,25 @@ public:
           smallestComponentId = componentId;
         }
       } else {
-        // If any required component type doesn't exist, we can return early
         matches.clear();
         return;
       }
     }
 
-    // Get the smallest component array for base iteration
     auto &baseArray = world->components[smallestComponentId];
     auto *typedBaseArray = static_cast<
         ComponentArray<std::tuple_element_t<0, std::tuple<Components...>>> *>(
         baseArray.get());
 
-    // Reserve space for efficiency
     matches.reserve(minSize);
 
-    // Iterate through the entities that have the smallest component array
     const auto &baseEntities = typedBaseArray->entities();
     for (size_t entityId : baseEntities) {
       if (!world->activeEntities[entityId]) {
         continue;
       }
 
-      // Check if entity has all other required components
       bool hasAll = true;
-
-      // Using fold expression to check all components
       ([&] {
         auto componentId = ComponentId::get<Components>();
         if (componentId != smallestComponentId) {
@@ -287,13 +327,10 @@ public:
        ...);
 
       if (hasAll) {
-        // Use push_back instead of emplace_back since Entity constructor is
-        // private
         matches.push_back(Entity(world, entityId));
       }
     }
 
-    // Sort matches by entity ID for consistent iteration order
     std::sort(
         matches.begin(), matches.end(),
         [](const Entity &a, const Entity &b) { return a.getId() < b.getId(); });
@@ -328,7 +365,6 @@ public:
     }
 
     bool operator==(const Iterator &other) const { return ptr == other.ptr; }
-
     bool operator!=(const Iterator &other) const { return ptr != other.ptr; }
 
   private:
