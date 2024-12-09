@@ -24,6 +24,13 @@ struct EditorState {
   Tools tools;
 };
 
+namespace Events {
+struct PlaceObject {
+  u32 objectId;
+  glm::vec2 position;
+};
+} // namespace Events
+
 int main(int argc, char *argv[]) {
   // Build a window
   auto window = ste::Window::builder()
@@ -77,6 +84,11 @@ int main(int argc, char *argv[]) {
   world.addResource(timer);
 
   // Add systems
+  world.addSystem("Input Manager", [](ste::World &world) {
+    auto inputManager = world.getResource<ste::InputManager>();
+    inputManager->update();
+  });
+
   world.addSystem("Placement Tool", [](ste::World &world) {
     auto editorState = world.getResource<EditorState>();
     auto camera = world.getResource<ste::Camera2D>();
@@ -98,6 +110,17 @@ int main(int argc, char *argv[]) {
     placementTool.cursorPosition.y =
         std::floor(placementTool.cursorPosition.y / placementTool.gridSize.y) *
         placementTool.gridSize.y;
+
+    // If the user clicks emit an event
+    if (inputManager->isMouseButtonPressed(ste::Input::MouseLeft)) {
+      world.emit<Events::PlaceObject>({0, placementTool.cursorPosition});
+    }
+  });
+
+  // Subscribe to event object placement
+  world.subscribe<Events::PlaceObject>([](const Events::PlaceObject &event) {
+    std::cout << "Placing object at: " << event.position.x << ", "
+              << event.position.y << std::endl;
   });
 
   // Add a render system
@@ -142,7 +165,6 @@ int main(int argc, char *argv[]) {
     }
 
     // Update
-    inputManager->update();
     world.update(timer->getDeltaTime());
 
     // Render
