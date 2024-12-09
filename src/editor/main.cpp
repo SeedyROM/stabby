@@ -28,6 +28,8 @@ namespace Events {
 struct PlaceObject {
   u32 objectId;
   glm::vec2 position;
+
+  PlaceObject(u32 id, const glm::vec2 &pos) : objectId(id), position(pos) {}
 };
 
 } // namespace Events
