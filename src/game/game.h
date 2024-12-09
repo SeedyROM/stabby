@@ -1,4 +1,3 @@
-// game.h
 #pragma once
 
 #include "engine/engine.h"

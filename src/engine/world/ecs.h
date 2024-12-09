@@ -1,4 +1,3 @@
-// ecs.h
 #pragma once
 
 #include <algorithm>
