@@ -28,8 +28,6 @@ namespace Events {
 struct PlaceObject {
   u32 objectId;
   glm::vec2 position;
-
-  PlaceObject(u32 id, const glm::vec2 &pos) : objectId(id), position(pos) {}
 };
 
 } // namespace Events
@@ -116,7 +114,7 @@ int main(int argc, char *argv[]) {
 
     // If the user clicks emit an event
     if (inputManager->isMouseButtonPressed(ste::Input::MouseLeft)) {
-      world.emit(Events::PlaceObject(0, placementTool.cursorPosition));
+      world.emit(Events::PlaceObject{0, placementTool.cursorPosition});
     }
   });
 
