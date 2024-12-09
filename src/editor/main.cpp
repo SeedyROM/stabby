@@ -29,6 +29,7 @@ struct PlaceObject {
   u32 objectId;
   glm::vec2 position;
 };
+
 } // namespace Events
 
 int main(int argc, char *argv[]) {
@@ -113,12 +114,12 @@ int main(int argc, char *argv[]) {
 
     // If the user clicks emit an event
     if (inputManager->isMouseButtonPressed(ste::Input::MouseLeft)) {
-      world.emit<Events::PlaceObject>({0, placementTool.cursorPosition});
+      world.emit(Events::PlaceObject(0, placementTool.cursorPosition));
     }
   });
 
   // Subscribe to event object placement
-  world.subscribe<Events::PlaceObject>([](const Events::PlaceObject &event) {
+  world.subscribe<Events::PlaceObject>([](const auto &event) {
     std::cout << "Placing object at: " << event.position.x << ", "
               << event.position.y << std::endl;
   });
