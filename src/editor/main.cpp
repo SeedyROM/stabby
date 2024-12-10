@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <engine/engine.h>
 
@@ -53,7 +54,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Load a font
-  auto font = assetLoader->load<ste::Font>("assets/fonts/better-vcr.ttf@13");
+  auto font = assetLoader->load<ste::Font>(
+      ste::getAssetPath("fonts/better-vcr.ttf@13"));
 
   // Create a renderer
   ste::Renderer2D::CreateInfo rendererCreateInfo;
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]) {
   // Add the debug rendering
   world.addSystem(
       "Render Debug",
-      [&renderer, &textRenderer, &font](ste::World &world) {
+      [&renderer, &textRenderer, &font, &window](ste::World &world) {
         auto editorState = world.getResource<EditorState>();
         if (!editorState->debugMode)
           return;
@@ -141,12 +143,16 @@ int main(int argc, char *argv[]) {
         auto timer = world.getResource<ste::GameTimer>();
         auto camera = world.getResource<ste::Camera2D>();
 
-        renderer->beginScene(camera->getViewProjectionMatrix());
+        // Set up the UI projection
+        auto uiProjection = glm::ortho(0.0f, (float)window->getWidth(), 0.0f,
+                                       (float)window->getHeight(), -1.0f, 1.0f);
 
-        textRenderer->renderText(
-            *font, "FPS: " + std::to_string(timer->getFPS()),
-            {camera->getPosition().x + 10.0f, camera->getPosition().y + 10.0f},
-            {1.0f, 1.0f, 1.0f, 1.0f});
+        renderer->beginScene(uiProjection);
+
+        textRenderer->renderText(*font,
+                                 " FPS: " + std::to_string(timer->getFPS()),
+                                 {10.0f, window->getHeight() - 13.0f - 13.0f},
+                                 {1.0f, 1.0f, 1.0f, 1.0f});
 
         renderer->endScene();
       },

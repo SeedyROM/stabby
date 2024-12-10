@@ -1,6 +1,7 @@
 #include "renderer_2d.h"
 
 #include <array>
+#include <iostream>
 #include <vector>
 
 #include <glad/glad.h>
@@ -283,6 +284,13 @@ void Renderer2D::flush() {
   glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                         reinterpret_cast<const void *>(
                             bufferOffset + offsetof(Vertex, tilingFactor)));
+
+  glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        reinterpret_cast<const void *>(
+                            bufferOffset + offsetof(Vertex, outlineThickness)));
+  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        reinterpret_cast<const void *>(
+                            bufferOffset + offsetof(Vertex, outlineColor)));
 
   // Draw
   m_shader.use();

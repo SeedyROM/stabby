@@ -22,7 +22,7 @@ using isize = ptrdiff_t;
 
 namespace ste {
 
-inline std::string getAssetPath(const std::string &filename) {
+inline std::string getAssetPath(const std::string &filename) noexcept {
   return std::string(ASSET_PATH) + "/" + filename;
 }
 
