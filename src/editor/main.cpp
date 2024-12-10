@@ -5,10 +5,8 @@
 #include <engine/engine.h>
 
 struct PlacementTool {
-  glm::vec2 gridSize;
-  glm::vec2 cursorPosition;
-
-  PlacementTool() : gridSize(64.0f, 64.0f), cursorPosition(0.0f, 0.0f) {}
+  glm::vec2 gridSize = {64.0f, 64.0f};
+  glm::vec2 cursorPosition = glm::vec2(0.0f);
 };
 
 struct Tools {
@@ -22,6 +20,7 @@ struct Level {
 struct EditorState {
   Level currentLevel;
   Tools tools;
+  bool debugMode = true;
 };
 
 namespace Events {
@@ -54,7 +53,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Load a font
-  auto font = assetLoader->load<ste::Font>("assets/fonts/better-vcr.ttf@16");
+  auto font = assetLoader->load<ste::Font>("assets/fonts/better-vcr.ttf@13");
 
   // Create a renderer
   ste::Renderer2D::CreateInfo rendererCreateInfo;
@@ -65,7 +64,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Setup the systems
-  ste::TextRenderer textRenderer(*renderer);
+  auto textRenderer = std::make_shared<ste::TextRenderer>(*renderer);
   ste::AudioManager audioManager;
   auto inputManager = std::make_shared<ste::InputManager>();
 
@@ -88,6 +87,12 @@ int main(int argc, char *argv[]) {
   world.addSystem("Input Manager", [](ste::World &world) {
     auto inputManager = world.getResource<ste::InputManager>();
     inputManager->update();
+
+    // If the 0 key is pressed, toggle debug mode
+    if (inputManager->isKeyPressed(ste::Input::Num0)) {
+      auto editorState = world.getResource<EditorState>();
+      editorState->debugMode = !editorState->debugMode;
+    }
   });
 
   world.addSystem("Placement Tool", [](ste::World &world) {
@@ -124,7 +129,30 @@ int main(int argc, char *argv[]) {
               << event.position.y << std::endl;
   });
 
-  // Add a render system
+  // Add the debug rendering
+  world.addSystem(
+      "Render Debug",
+      [&renderer, &textRenderer, &font](ste::World &world) {
+        auto editorState = world.getResource<EditorState>();
+        if (!editorState->debugMode)
+          return;
+
+        // Draw the FPS counter
+        auto timer = world.getResource<ste::GameTimer>();
+        auto camera = world.getResource<ste::Camera2D>();
+
+        renderer->beginScene(camera->getViewProjectionMatrix());
+
+        textRenderer->renderText(
+            *font, "FPS: " + std::to_string(timer->getFPS()),
+            {camera->getPosition().x + 10.0f, camera->getPosition().y + 10.0f},
+            {1.0f, 1.0f, 1.0f, 1.0f});
+
+        renderer->endScene();
+      },
+      1, true);
+
+  // Add the tool rendering
   world.addSystem(
       "Render Tools",
       [&renderer](ste::World &world) {
@@ -136,7 +164,7 @@ int main(int argc, char *argv[]) {
         // Begin drawing the scene
         renderer->beginScene(camera->getViewProjectionMatrix());
 
-        // Draw the a font
+        // Draw the placement tool cursor
         renderer->drawQuad(
             {placementTool.cursorPosition.x + (placementTool.gridSize.x / 2.0f),
              placementTool.cursorPosition.y + (placementTool.gridSize.y / 2.0f),
