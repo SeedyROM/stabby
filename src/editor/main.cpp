@@ -1,12 +1,16 @@
 #include <iostream>
+#include <map>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <engine/engine.h>
 
+#include "map.h"
+
 struct PlacementTool {
-  glm::vec2 gridSize = {64.0f, 64.0f};
+  glm::vec2 gridSize = {32.0f, 32.0f};
   glm::vec2 cursorPosition = glm::vec2(0.0f);
 };
 
@@ -16,6 +20,7 @@ struct Tools {
 
 struct Level {
   std::string name;
+  Map map;
 };
 
 struct EditorState {
@@ -33,6 +38,10 @@ struct PlaceObject {
 } // namespace Events
 
 int main(int argc, char *argv[]) {
+  Map map;
+
+  map.createLayer("background", 0);
+
   // Build a window
   auto window = ste::Window::builder()
                     .setTitle("Stabby Editor : v0.0.1")
@@ -114,10 +123,12 @@ int main(int argc, char *argv[]) {
     // Lock the cursor to a grid
     placementTool.cursorPosition.x =
         std::floor(placementTool.cursorPosition.x / placementTool.gridSize.x) *
-        placementTool.gridSize.x;
+            placementTool.gridSize.x +
+        (placementTool.gridSize.x / 2.0f);
     placementTool.cursorPosition.y =
         std::floor(placementTool.cursorPosition.y / placementTool.gridSize.y) *
-        placementTool.gridSize.y;
+            placementTool.gridSize.y +
+        (placementTool.gridSize.y / 2.0f);
 
     // If the user clicks emit an event
     if (inputManager->isMouseButtonPressed(ste::Input::MouseLeft)) {
@@ -126,9 +137,12 @@ int main(int argc, char *argv[]) {
   });
 
   // Subscribe to event object placement
-  world.subscribe<Events::PlaceObject>([](const auto &event) {
+  world.subscribe<Events::PlaceObject>([&map](const auto &event) {
     std::cout << "Placing object at: " << event.position.x << ", "
               << event.position.y << std::endl;
+
+    // Add the object to the map
+    map.addTile("background", 0, event.position, {32.0f, 32.0f});
   });
 
   // Add the debug rendering
@@ -175,12 +189,37 @@ int main(int argc, char *argv[]) {
         renderer->beginScene(camera->getViewProjectionMatrix());
 
         // Draw the placement tool cursor
-        renderer->drawQuad(
-            {placementTool.cursorPosition.x + (placementTool.gridSize.x / 2.0f),
-             placementTool.cursorPosition.y + (placementTool.gridSize.y / 2.0f),
-             0.0f},
-            {placementTool.gridSize.x, placementTool.gridSize.y},
-            {1.0f, 1.0f, 1.0f, 0.1f}, 0.0f, 0.1f, {1.0f, 1.0f, 1.0f, 1.0f});
+        renderer->drawQuad({placementTool.cursorPosition.x,
+                            placementTool.cursorPosition.y, 0.0f},
+                           {placementTool.gridSize.x, placementTool.gridSize.y},
+                           {1.0f, 1.0f, 1.0f, 0.1f}, 0.0f, 0.1f,
+                           {1.0f, 1.0f, 1.0f, 1.0f});
+
+        // End drawing the scene
+        renderer->endScene();
+      },
+      0, true);
+
+  // Render the map
+  world.addSystem(
+      "Render Map",
+      [&map, &renderer](ste::World &world) {
+        auto camera = world.getResource<ste::Camera2D>();
+        auto editorState = world.getResource<EditorState>();
+
+        // Begin drawing the scene
+        renderer->beginScene(camera->getViewProjectionMatrix());
+
+        // Draw the map
+        for (const auto &layer : map.layers()) {
+          for (const auto &tile : layer.getTiles()) {
+            auto position = tile.getPosition();
+            auto size = tile.getSize();
+            renderer->drawQuad({position.x, position.y, 0.0f}, {size.x, size.y},
+                               {1.0f, 1.0f, 1.0f, 1.0f}, 0.0f, 0.1f,
+                               {1.0f, 1.0f, 1.0f, 1.0f});
+          }
+        }
 
         // End drawing the scene
         renderer->endScene();
