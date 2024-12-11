@@ -312,10 +312,12 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
                           const glm::vec4 &color, float rotation,
                           float outlineThickness,
                           const glm::vec4 &outlineColor) {
-  if (m_indexCount >= MAX_INDICES) {
-    flush();
-    startBatch();
-  }
+
+  // TODO(SeedyROM): Fix the batching, for now disable batching logic, and
+  // always flush if (m_indexCount >= MAX_INDICES) {
+  flush();
+  startBatch();
+  // }
 
   glm::mat4 transform =
       glm::translate(glm::mat4(1.0f), position) *
