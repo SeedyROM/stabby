@@ -105,6 +105,15 @@ public:
     return true;
   }
 
+  template <size_t N>
+  bool setUniformArray(std::string_view name, const int (&values)[N]) const {
+    const GLint location = getUniformLocation(name);
+    if (location == -1)
+      return false;
+    glUniform1iv(location, N, values);
+    return true;
+  }
+
 private:
   GLuint m_id{0};
   mutable std::unordered_map<std::string, GLint> m_uniformLocationCache;

@@ -24,6 +24,7 @@ public:
     uint32_t id;
     int32_t width;
     int32_t height;
+    uint32_t slot = 0;
   };
 
   struct Statistics {
@@ -118,6 +119,10 @@ private:
 
   BlendMode m_currentBlendMode = BlendMode::Alpha;
   void applyBlendMode(BlendMode mode);
+
+  uint32_t m_textureSlots[MAX_TEXTURE_SLOTS];
+  uint32_t m_textureSlotIndex = 1;
+  uint32_t m_whiteTexture;
 };
 
 } // namespace ste

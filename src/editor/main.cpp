@@ -165,11 +165,11 @@ int main(int argc, char *argv[]) {
 
         textRenderer->renderText(
             *font,
-            " FPS: " + std::to_string(
-                           timer->getFPS()), // TODO(SeedyROM): Determine why
-                                             // the first character if not a
-                                             // space is a white square
-            {2.0f, window->getHeight() - 13.0f - 13.0f},
+            "FPS: " + std::to_string(
+                          timer->getFPS()), // TODO(SeedyROM): Determine why
+                                            // the first character if not a
+                                            // space is a white square
+            {11.0f, window->getHeight() - 13.0f - 13.0f},
             {1.0f, 1.0f, 1.0f, 1.0f});
 
         renderer->endScene();
