@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
                     .setTitle("Stabby Editor : v0.0.1")
                     .setSize(1280, 720)
                     .setVSync(true)
+                    .setMSAA(8)
                     .build()
                     .value_or(nullptr);
   if (!window) {
@@ -163,14 +164,10 @@ int main(int argc, char *argv[]) {
 
         renderer->beginScene(uiProjection);
 
-        textRenderer->renderText(
-            *font,
-            "FPS: " + std::to_string(
-                          timer->getFPS()), // TODO(SeedyROM): Determine why
-                                            // the first character if not a
-                                            // space is a white square
-            {11.0f, window->getHeight() - 13.0f - 13.0f},
-            {1.0f, 1.0f, 1.0f, 1.0f});
+        textRenderer->renderText(*font,
+                                 "FPS: " + std::to_string(timer->getFPS()),
+                                 {11.0f, window->getHeight() - 13.0f - 13.0f},
+                                 {1.0f, 1.0f, 1.0f, 1.0f});
 
         renderer->endScene();
       },

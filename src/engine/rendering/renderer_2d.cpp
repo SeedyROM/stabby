@@ -55,10 +55,11 @@ const char *fragmentShaderSource = R"(
 
         void main() {
             vec4 texColor = v_Color;
-            
-            // Sample texture if we're using one
+    
+            // Sample texture if we have a valid texture index (> 0)
+            // Change this condition to handle slot 0 differently
             int texIndex = int(v_TexIndex);
-            if (texIndex >= 0) {
+            if (texIndex > 0) {  // Changed from >= 0 to > 0
                 texColor *= texture(u_Textures[texIndex], v_TexCoord * v_TilingFactor);
             }
             
@@ -172,8 +173,8 @@ Renderer2D::Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo,
   glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                whitePixel);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 Renderer2D::~Renderer2D() {
