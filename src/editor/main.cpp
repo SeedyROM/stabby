@@ -159,19 +159,24 @@ int main(int argc, char *argv[]) {
         auto camera = world.getResource<ste::Camera2D>();
 
         // Set up the UI projection
-        auto uiProjection =
+        const auto uiProjection =
             glm::ortho(0.0f, (float)window->getWidth(),
                        (float)window->getHeight(), 0.0f, -1.0f, 1.0f);
 
         renderer->beginScene(uiProjection);
 
+        // Draw a background for the FPS counter
+        renderer->drawQuad({90.0f, 19.0f, 0.0f}, {180.0f, 35.0f},
+                           {0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 1.0f,
+                           {1.0f, 1.0f, 1.0f, 1.0f});
+
         textRenderer->renderText(*font,
                                  "FPS: " + std::to_string(timer->getFPS()),
-                                 {13.0f, 13.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+                                 {13.0f, 14.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
 
         renderer->endScene();
       },
-      1, true);
+      0, true);
 
   // Add the tool rendering
   world.addSystem(
@@ -189,13 +194,13 @@ int main(int argc, char *argv[]) {
         renderer->drawQuad({placementTool.cursorPosition.x,
                             placementTool.cursorPosition.y, 0.0f},
                            {placementTool.gridSize.x, placementTool.gridSize.y},
-                           {1.0f, 1.0f, 1.0f, 0.1f}, 0.0f, 0.1f,
+                           {1.0f, 1.0f, 1.0f, 0.1f}, 0.0f, 2.0f,
                            {1.0f, 1.0f, 1.0f, 1.0f});
 
         // End drawing the scene
         renderer->endScene();
       },
-      0, true);
+      2, true);
 
   // Render the map
   world.addSystem(
@@ -213,7 +218,6 @@ int main(int argc, char *argv[]) {
             auto position = tile.getPosition();
             auto size = tile.getSize();
             renderer->drawQuad({position.x, position.y, 0.0f}, {size.x, size.y},
-                               {1.0f, 1.0f, 1.0f, 1.0f}, 0.0f, 0.1f,
                                {1.0f, 1.0f, 1.0f, 1.0f});
           }
         }
@@ -221,7 +225,7 @@ int main(int argc, char *argv[]) {
         // End drawing the scene
         renderer->endScene();
       },
-      0, true);
+      1, true);
 
   // Editor loop
   bool running = true;

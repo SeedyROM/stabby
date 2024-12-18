@@ -50,31 +50,34 @@ const char *fragmentShaderSource = R"(
         in float v_TilingFactor;
         in float v_OutlineThickness;
         in vec4 v_OutlineColor;
-
+        
         uniform sampler2D u_Textures[16];
 
         void main() {
             vec4 texColor = v_Color;
-    
-            // Sample texture if we have a valid texture index (> 0)
-            // Change this condition to handle slot 0 differently
+
+            // Sample texture if we have a valid texture index
             int texIndex = int(v_TexIndex);
-            if (texIndex > 0) {  // Changed from >= 0 to > 0
+            if (texIndex > 0) {
                 texColor *= texture(u_Textures[texIndex], v_TexCoord * v_TilingFactor);
             }
             
-            // Calculate distance from edge for outline
-            vec2 distFromCenter = abs(v_TexCoord - 0.5) * 2.0;
-            float maxDist = max(distFromCenter.x, distFromCenter.y);
+            // Calculate pixel scale for each axis
+            vec2 dx = dFdx(v_TexCoord);
+            vec2 dy = dFdy(v_TexCoord);
+            vec2 texSize = vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y))) * 2.0;
             
-            // Define outline edge
-            float outlineEdge = 1.0 - v_OutlineThickness;
+            // Calculate distance from edge in normalized UV space
+            vec2 uvDist = abs(v_TexCoord - 0.5) * 2.0;
             
-            if (maxDist > outlineEdge && v_OutlineThickness > 0.0) {
-                FragColor = v_OutlineColor;
-            } else {
-                FragColor = texColor;
-            }
+            // Convert outline thickness to UV space separately for each axis
+            vec2 thickness = vec2(v_OutlineThickness) * texSize;
+            
+            // Check if we're in the outline region on either axis
+            vec2 inner = vec2(1.0) - thickness;
+            bool inOutline = uvDist.x > inner.x || uvDist.y > inner.y;
+            
+            FragColor = inOutline && v_OutlineThickness > 0.0 ? v_OutlineColor : texColor;
         }
     )";
 } // namespace
