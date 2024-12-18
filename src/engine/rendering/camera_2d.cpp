@@ -165,8 +165,13 @@ void Camera2D::updateViewMatrix() {
 }
 
 void Camera2D::updateProjectionMatrix() {
-  m_projectionMatrix =
-      glm::ortho(0.0f, m_windowWidth, 0.0f, m_windowHeight, -1.0f, 1.0f);
+  m_projectionMatrix = glm::ortho(0.0f,           // Left
+                                  m_windowWidth,  // Right
+                                  m_windowHeight, // Top (swapped with bottom)
+                                  0.0f,           // Bottom (swapped with top)
+                                  -1.0f,          // Near
+                                  1.0f            // Far
+  );
 }
 
 }; // namespace ste

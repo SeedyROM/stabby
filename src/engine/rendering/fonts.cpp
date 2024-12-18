@@ -157,9 +157,9 @@ bool FontAtlas::addGlyph(uint32_t codepoint, const uint8_t *bitmap,
   // Store glyph info
   GlyphInfo info;
   info.u0 = static_cast<float>(x) / m_width;
-  info.v0 = static_cast<float>(y + height) / m_height; // Flip v0 and v1
-  info.v1 = static_cast<float>(y) / m_height;
+  info.v0 = static_cast<float>(y) / m_height;
   info.u1 = static_cast<float>(x + width) / m_width;
+  info.v1 = static_cast<float>(y + height) / m_height;
   info.bearingX = bearingX;
   info.bearingY = bearingY;
   info.advance = advance;
@@ -389,7 +389,8 @@ void TextRenderer::renderText(Font &font, const std::string &text,
 
     // Calculate glyph position
     float x = pen.x + glyph->bearingX;
-    float y = pen.y - (glyph->height - glyph->bearingY);
+    // Position relative to baseline
+    float y = pen.y + (font.getBaseline() - glyph->bearingY);
 
     // Draw glyph
     m_renderer.drawTexturedQuad(

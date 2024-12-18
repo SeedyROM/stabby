@@ -159,15 +159,15 @@ int main(int argc, char *argv[]) {
         auto camera = world.getResource<ste::Camera2D>();
 
         // Set up the UI projection
-        auto uiProjection = glm::ortho(0.0f, (float)window->getWidth(), 0.0f,
-                                       (float)window->getHeight(), -1.0f, 1.0f);
+        auto uiProjection =
+            glm::ortho(0.0f, (float)window->getWidth(),
+                       (float)window->getHeight(), 0.0f, -1.0f, 1.0f);
 
         renderer->beginScene(uiProjection);
 
         textRenderer->renderText(*font,
                                  "FPS: " + std::to_string(timer->getFPS()),
-                                 {11.0f, window->getHeight() - 13.0f - 13.0f},
-                                 {1.0f, 1.0f, 1.0f, 1.0f});
+                                 {13.0f, 13.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
 
         renderer->endScene();
       },
