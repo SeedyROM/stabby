@@ -12,29 +12,7 @@
 
 #include <glm/glm.hpp>
 
-// Forward declarations
-class Layer;
-class Map;
-class QuadTree;
-
-// Axis-aligned bounding box
-struct AABB {
-  glm::vec2 min;
-  glm::vec2 max;
-
-  AABB() : min(0), max(0) {}
-  AABB(const glm::vec2 &min, const glm::vec2 &max) : min(min), max(max) {}
-
-  bool contains(const glm::vec2 &point) const {
-    return point.x >= min.x && point.x <= max.x && point.y >= min.y &&
-           point.y <= max.y;
-  }
-
-  bool intersects(const AABB &other) const {
-    return min.x <= other.max.x && max.x >= other.min.x &&
-           min.y <= other.max.y && max.y >= other.min.y;
-  }
-};
+#include "engine/engine.h"
 
 class Tile {
 public:
@@ -78,101 +56,18 @@ private:
   const glm::vec2 size_;
 };
 
-// QuadTree implementation for spatial partitioning
-class QuadTree {
-public:
-  struct Entry {
-    std::string layerName;
-    Tile::Id tileId;
-    AABB bounds;
+struct MapEntry {
+  std::string layerName;
+  Tile::Id tileId;
+  AABB bounds;
 
-    Entry(const std::string &layerName, Tile::Id tileId, const AABB &bounds)
-        : layerName(layerName), tileId(tileId), bounds(bounds) {}
+  MapEntry(const std::string &layerName, Tile::Id tileId, const AABB &bounds)
+      : layerName(layerName), tileId(tileId), bounds(bounds) {}
 
-    Entry(Entry &&) noexcept = default;
-    Entry &operator=(Entry &&) noexcept = default;
-    Entry(const Entry &) = default;
-    Entry &operator=(const Entry &) = default;
-  };
-
-  QuadTree(const AABB &bounds, int maxDepth = 8, int maxEntries = 4)
-      : bounds_(bounds), maxDepth_(maxDepth), maxEntries_(maxEntries) {}
-
-  void insert(const Entry &entry) {
-    if (!bounds_.intersects(entry.bounds)) {
-      return;
-    }
-
-    if (entries_.size() < maxEntries_ || depth_ >= maxDepth_) {
-      entries_.push_back(entry);
-      return;
-    }
-
-    if (children_.empty()) {
-      subdivide();
-    }
-
-    for (auto &child : children_) {
-      child->insert(entry);
-    }
-  }
-
-  void remove(const std::string &layerName, Tile::Id tileId) {
-    entries_.erase(std::remove_if(entries_.begin(), entries_.end(),
-                                  [&](const Entry &e) {
-                                    return e.layerName == layerName &&
-                                           e.tileId == tileId;
-                                  }),
-                   entries_.end());
-
-    for (auto &child : children_) {
-      child->remove(layerName, tileId);
-    }
-  }
-
-  std::vector<Entry> query(const AABB &area) const {
-    std::vector<Entry> result;
-    if (!bounds_.intersects(area)) {
-      return result;
-    }
-
-    for (const auto &entry : entries_) {
-      if (entry.bounds.intersects(area)) {
-        result.push_back(entry);
-      }
-    }
-
-    for (const auto &child : children_) {
-      auto childResults = child->query(area);
-      result.insert(result.end(), childResults.begin(), childResults.end());
-    }
-
-    return result;
-  }
-
-private:
-  void subdivide() {
-    float midX = (bounds_.min.x + bounds_.max.x) * 0.5f;
-    float midY = (bounds_.min.y + bounds_.max.y) * 0.5f;
-
-    children_.push_back(std::make_unique<QuadTree>(
-        AABB(bounds_.min, glm::vec2(midX, midY)), maxDepth_, maxEntries_));
-    children_.push_back(std::make_unique<QuadTree>(
-        AABB(glm::vec2(midX, bounds_.min.y), glm::vec2(bounds_.max.x, midY)),
-        maxDepth_, maxEntries_));
-    children_.push_back(std::make_unique<QuadTree>(
-        AABB(glm::vec2(bounds_.min.x, midY), glm::vec2(midX, bounds_.max.y)),
-        maxDepth_, maxEntries_));
-    children_.push_back(std::make_unique<QuadTree>(
-        AABB(glm::vec2(midX, midY), bounds_.max), maxDepth_, maxEntries_));
-  }
-
-  AABB bounds_;
-  int depth_ = 0;
-  int maxDepth_;
-  int maxEntries_;
-  std::vector<Entry> entries_;
-  std::vector<std::unique_ptr<QuadTree>> children_;
+  MapEntry(MapEntry &&) noexcept = default;
+  MapEntry &operator=(MapEntry &&) noexcept = default;
+  MapEntry(const MapEntry &) = default;
+  MapEntry &operator=(const MapEntry &) = default;
 };
 
 struct TileLocation {
@@ -230,7 +125,7 @@ public:
   using LayerName = std::string;
 
   Map(const AABB &bounds = AABB(glm::vec2(-10000), glm::vec2(10000)))
-      : spatialIndex_(std::make_unique<QuadTree>(bounds)) {}
+      : spatialIndex_(std::make_unique<QuadTree<MapEntry>>(bounds)) {}
 
   class LayerIterator {
   public:
@@ -294,7 +189,9 @@ public:
     auto it = layers_.find(name);
     if (it != layers_.end()) {
       for (const auto &tile : it->second.getTiles()) {
-        spatialIndex_->remove(name, tile.getId());
+        spatialIndex_->removeEntry([&](const MapEntry &entry) {
+          return entry.layerName == name && entry.tileId == tile.getId();
+        });
       }
       layers_.erase(it);
       return true;
@@ -314,7 +211,7 @@ public:
       Tile::Id id = tile.getId();
 
       // Add to spatial index
-      spatialIndex_->insert(QuadTree::Entry{layerName, id, tile.getBounds()});
+      spatialIndex_->insert(MapEntry{layerName, id, tile.getBounds()});
 
       // Add to layer
       it->second.addTile(std::move(tile));
@@ -328,7 +225,9 @@ public:
     auto it = layers_.find(layerName);
     if (it != layers_.end()) {
       if (it->second.removeTile(tileId)) {
-        spatialIndex_->remove(layerName, tileId);
+        spatialIndex_->removeEntry([&](const MapEntry &entry) {
+          return entry.layerName == layerName && entry.tileId == tileId;
+        });
         return true;
       }
     }
@@ -367,5 +266,5 @@ public:
 private:
   mutable std::shared_mutex mutex_;
   std::unordered_map<LayerName, Layer> layers_;
-  std::unique_ptr<QuadTree> spatialIndex_;
+  std::unique_ptr<QuadTree<MapEntry>> spatialIndex_;
 };
