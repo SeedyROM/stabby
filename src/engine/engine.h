@@ -20,6 +20,7 @@ concept HasCreateInfo = requires(T t, typename T::CreateInfo ci) {
   { T::create(ci) } -> std::same_as<std::optional<T>>;
 };
 
+// TODO(SeedyROM): This code is TRASH, remove it.
 template <HasCreateInfo T>
 std::shared_ptr<T>
 createSharedResource(std::optional<T> &opt, const char *resourceName,
@@ -34,6 +35,7 @@ createSharedResource(std::optional<T> &opt, const char *resourceName,
   return std::make_shared<T>(std::move(*opt));
 }
 
+// TODO(SeedyROM): This code is TRASH, remove it.
 std::optional<std::shared_ptr<ste::SceneManager>>
 createSceneManager(const std::shared_ptr<ste::Window> window) {
   try {

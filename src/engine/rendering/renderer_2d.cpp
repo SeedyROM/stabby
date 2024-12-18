@@ -1,6 +1,7 @@
 #include "renderer_2d.h"
 
 #include <array>
+#include <iostream>
 #include <vector>
 
 #include <glad/glad.h>
@@ -49,29 +50,34 @@ const char *fragmentShaderSource = R"(
         in float v_TilingFactor;
         in float v_OutlineThickness;
         in vec4 v_OutlineColor;
-
+        
         uniform sampler2D u_Textures[16];
 
         void main() {
             vec4 texColor = v_Color;
-            
-            if (v_TexIndex > -0.5) {
-                int index = int(v_TexIndex);
-                texColor *= texture(u_Textures[index], v_TexCoord * v_TilingFactor);
+
+            // Sample texture if we have a valid texture index
+            int texIndex = int(v_TexIndex);
+            if (texIndex > 0) {
+                texColor *= texture(u_Textures[texIndex], v_TexCoord * v_TilingFactor);
             }
             
-            // Calculate distance from edge
-            vec2 distFromCenter = abs(v_TexCoord - 0.5) * 2.0;
-            float maxDist = max(distFromCenter.x, distFromCenter.y);
+            // Calculate pixel scale for each axis
+            vec2 dx = dFdx(v_TexCoord);
+            vec2 dy = dFdy(v_TexCoord);
+            vec2 texSize = vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y))) * 2.0;
             
-            // Define outline edge
-            float outlineEdge = 1.0 - v_OutlineThickness;
+            // Calculate distance from edge in normalized UV space
+            vec2 uvDist = abs(v_TexCoord - 0.5) * 2.0;
             
-            if (maxDist > outlineEdge && v_OutlineThickness > 0.0) {
-                FragColor = v_OutlineColor;
-            } else {
-                FragColor = texColor;
-            }
+            // Convert outline thickness to UV space separately for each axis
+            vec2 thickness = vec2(v_OutlineThickness) * texSize;
+            
+            // Check if we're in the outline region on either axis
+            vec2 inner = vec2(1.0) - thickness;
+            bool inOutline = uvDist.x > inner.x || uvDist.y > inner.y;
+            
+            FragColor = inOutline && v_OutlineThickness > 0.0 ? v_OutlineColor : texColor;
         }
     )";
 } // namespace
@@ -164,6 +170,14 @@ Renderer2D::Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo,
     : m_shader(std::move(shader)), m_VAO(vao), m_VBO(vbo), m_IBO(ibo),
       m_vertexBufferBase(vertices) {
   m_vertexBufferPtr = m_vertexBufferBase;
+
+  uint8_t whitePixel[4] = {255, 255, 255, 255};
+  glGenTextures(1, &m_whiteTexture);
+  glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+               whitePixel);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 Renderer2D::~Renderer2D() {
@@ -243,20 +257,24 @@ void Renderer2D::waitForBuffer(uint32_t bufferIndex) {
 }
 
 void Renderer2D::startBatch() {
-  m_lastTextureId = 0;
   m_indexCount = 0;
   m_vertexBufferPtr = m_vertexBufferBase;
+  m_textureSlotIndex = 1; // Reset to 1 since 0 is reserved for white texture
+
+  // Reset texture slots
+  m_textureSlots[0] = m_whiteTexture; // Slot 0 is always the white texture
+  for (uint32_t i = 1; i < MAX_TEXTURE_SLOTS; i++) {
+    m_textureSlots[i] = 0;
+  }
 }
 
 void Renderer2D::flush() {
-  if (m_indexCount == 0) {
+  if (m_indexCount == 0)
     return;
-  }
 
   // Wait for the current buffer to be available
   waitForBuffer(m_currentBuffer);
 
-  // Calculate data size and offset
   uint32_t dataSize =
       static_cast<uint32_t>(reinterpret_cast<uint8_t *>(m_vertexBufferPtr) -
                             reinterpret_cast<uint8_t *>(m_vertexBufferBase));
@@ -266,27 +284,47 @@ void Renderer2D::flush() {
   glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
   glBufferSubData(GL_ARRAY_BUFFER, bufferOffset, dataSize, m_vertexBufferBase);
 
-  // Update vertex attribute pointers for current buffer
-  const void *baseOffset = reinterpret_cast<const void *>(bufferOffset);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<const void *>(
-                            bufferOffset + offsetof(Vertex, position)));
+  // Update attribute pointers for current buffer
   glVertexAttribPointer(
-      1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-      reinterpret_cast<const void *>(bufferOffset + offsetof(Vertex, color)));
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<const void *>(
-                            bufferOffset + offsetof(Vertex, texCoords)));
-  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<const void *>(
-                            bufferOffset + offsetof(Vertex, texIndex)));
-  glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<const void *>(
-                            bufferOffset + offsetof(Vertex, tilingFactor)));
+      0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+      (const void *)(bufferOffset + offsetof(Vertex, position)));
+  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (const void *)(bufferOffset + offsetof(Vertex, color)));
+  glVertexAttribPointer(
+      2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+      (const void *)(bufferOffset + offsetof(Vertex, texCoords)));
+  glVertexAttribPointer(
+      3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+      (const void *)(bufferOffset + offsetof(Vertex, texIndex)));
+  glVertexAttribPointer(
+      4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+      (const void *)(bufferOffset + offsetof(Vertex, tilingFactor)));
+  glVertexAttribPointer(
+      5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+      (const void *)(bufferOffset + offsetof(Vertex, outlineThickness)));
+  glVertexAttribPointer(
+      6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+      (const void *)(bufferOffset + offsetof(Vertex, outlineColor)));
+
+  // Always bind white texture to slot 0
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
+
+  // Bind additional textures
+  for (uint32_t i = 1; i < m_textureSlotIndex; i++) {
+    glActiveTexture(GL_TEXTURE0 + i);
+    glBindTexture(GL_TEXTURE_2D, m_textureSlots[i]);
+  }
 
   // Draw
   m_shader.use();
   m_shader.setUniform("u_ViewProjection", m_viewProjection);
+
+  int samplers[MAX_TEXTURE_SLOTS];
+  for (int i = 0; i < MAX_TEXTURE_SLOTS; i++) {
+    samplers[i] = i;
+  }
+  m_shader.setUniformArray("u_Textures", samplers);
 
   glBindVertexArray(m_VAO);
   glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, nullptr);
@@ -304,52 +342,34 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
                           const glm::vec4 &color, float rotation,
                           float outlineThickness,
                           const glm::vec4 &outlineColor) {
+
   if (m_indexCount >= MAX_INDICES) {
     flush();
     startBatch();
   }
 
-  glm::mat4 transform =
-      glm::translate(glm::mat4(1.0f), position) *
-      glm::rotate(glm::mat4(1.0f), rotation, {0.0f, 0.0f, 1.0f}) *
-      glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
+  const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
+  const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
 
-  // Add vertices to buffer
-  m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f);
-  m_vertexBufferPtr->color = color;
-  m_vertexBufferPtr->texCoords = {0.0f, 0.0f};
-  m_vertexBufferPtr->texIndex = -1.0f;
-  m_vertexBufferPtr->tilingFactor = 1.0f;
-  m_vertexBufferPtr->outlineThickness = outlineThickness;
-  m_vertexBufferPtr->outlineColor = outlineColor;
-  m_vertexBufferPtr++;
+  const float halfWidth = size.x * 0.5f;
+  const float halfHeight = size.y * 0.5f;
 
-  m_vertexBufferPtr->position = transform * glm::vec4(0.5f, -0.5f, 0.0f, 1.0f);
-  m_vertexBufferPtr->color = color;
-  m_vertexBufferPtr->texCoords = {1.0f, 0.0f};
-  m_vertexBufferPtr->texIndex = -1.0f;
-  m_vertexBufferPtr->tilingFactor = 1.0f;
-  m_vertexBufferPtr->outlineThickness = outlineThickness;
-  m_vertexBufferPtr->outlineColor = outlineColor;
-  m_vertexBufferPtr++;
+  // Always use texture slot 0 (white texture) for untextured quads
+  for (int i = 0; i < 4; i++) {
+    float x = (i == 1 || i == 2) ? halfWidth : -halfWidth;
+    float y = (i == 2 || i == 3) ? halfHeight : -halfHeight;
 
-  m_vertexBufferPtr->position = transform * glm::vec4(0.5f, 0.5f, 0.0f, 1.0f);
-  m_vertexBufferPtr->color = color;
-  m_vertexBufferPtr->texCoords = {1.0f, 1.0f};
-  m_vertexBufferPtr->texIndex = -1.0f;
-  m_vertexBufferPtr->tilingFactor = 1.0f;
-  m_vertexBufferPtr->outlineThickness = outlineThickness;
-  m_vertexBufferPtr->outlineColor = outlineColor;
-  m_vertexBufferPtr++;
-
-  m_vertexBufferPtr->position = transform * glm::vec4(-0.5f, 0.5f, 0.0f, 1.0f);
-  m_vertexBufferPtr->color = color;
-  m_vertexBufferPtr->texCoords = {0.0f, 1.0f};
-  m_vertexBufferPtr->texIndex = -1.0f;
-  m_vertexBufferPtr->tilingFactor = 1.0f;
-  m_vertexBufferPtr->outlineThickness = outlineThickness;
-  m_vertexBufferPtr->outlineColor = outlineColor;
-  m_vertexBufferPtr++;
+    m_vertexBufferPtr->position = {position.x + (x * c - y * s),
+                                   position.y + (x * s + y * c), position.z};
+    m_vertexBufferPtr->color = color;
+    m_vertexBufferPtr->texCoords = {(i == 1 || i == 2) ? 1.0f : 0.0f,
+                                    (i == 2 || i == 3) ? 1.0f : 0.0f};
+    m_vertexBufferPtr->texIndex = 0.0f; // Use white texture
+    m_vertexBufferPtr->tilingFactor = 1.0f;
+    m_vertexBufferPtr->outlineThickness = outlineThickness;
+    m_vertexBufferPtr->outlineColor = outlineColor;
+    m_vertexBufferPtr++;
+  }
 
   m_indexCount += 6;
   m_stats.quadCount++;
@@ -369,58 +389,46 @@ void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
                                   const TextureInfo &texture,
                                   const glm::vec2 &size, const glm::vec4 &tint,
                                   float rotation, const glm::vec4 &texCoords) {
-  if (m_indexCount >= MAX_INDICES) {
+  if (m_indexCount >= MAX_INDICES || m_textureSlotIndex >= MAX_TEXTURE_SLOTS) {
     flush();
     startBatch();
   }
 
-  // Pre-calculate sin/cos for rotation
+  // Find or assign texture slot
+  float textureIndex = 0.0f;
+  for (uint32_t i = 1; i < m_textureSlotIndex; i++) {
+    if (m_textureSlots[i] == texture.id) {
+      textureIndex = static_cast<float>(i);
+      break;
+    }
+  }
+
+  if (textureIndex == 0.0f && texture.id != m_whiteTexture) {
+    textureIndex = static_cast<float>(m_textureSlotIndex);
+    m_textureSlots[m_textureSlotIndex] = texture.id;
+    m_textureSlotIndex++;
+  }
+
   const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
   const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
 
-  // Pre-calculate scaled dimensions
   const float halfWidth = size.x * 0.5f;
   const float halfHeight = size.y * 0.5f;
 
-  // Pre-calculate vertex positions relative to center
-  const glm::vec3 vertices[4] = {
-      {-halfWidth, -halfHeight, 0.0f}, // Bottom left
-      {halfWidth, -halfHeight, 0.0f},  // Bottom right
-      {halfWidth, halfHeight, 0.0f},   // Top right
-      {-halfWidth, halfHeight, 0.0f}   // Top left
-  };
-
-  // Pre-calculate texture coordinates
-  const glm::vec2 uvs[4] = {
-      {texCoords.x, texCoords.y}, // Bottom left
-      {texCoords.z, texCoords.y}, // Bottom right
-      {texCoords.z, texCoords.w}, // Top right
-      {texCoords.x, texCoords.w}  // Top left
-  };
-
-  // Bind texture only once per batch if possible
-  if (texture.id != m_lastTextureId) {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture.id);
-    m_lastTextureId = texture.id;
-  }
-
-  // SIMD-friendly vertex processing
   for (int i = 0; i < 4; i++) {
-    // Apply rotation and translation
-    float x = vertices[i].x;
-    float y = vertices[i].y;
+    float x = (i == 1 || i == 2) ? halfWidth : -halfWidth;
+    float y = (i == 2 || i == 3) ? halfHeight : -halfHeight;
 
     m_vertexBufferPtr->position = {position.x + (x * c - y * s),
-                                   position.y + (x * s + y * c),
-                                   position.z + vertices[i].z};
-
-    // Reuse existing values where possible
+                                   position.y + (x * s + y * c), position.z};
     m_vertexBufferPtr->color = tint;
-    m_vertexBufferPtr->texCoords = uvs[i];
-    m_vertexBufferPtr->texIndex = 0.0f; // Always use texture slot 0
+    m_vertexBufferPtr->texCoords = {
+        (i == 1 || i == 2) ? texCoords.z : texCoords.x,
+        (i == 2 || i == 3) ? texCoords.w : texCoords.y};
+    m_vertexBufferPtr->texIndex = textureIndex;
     m_vertexBufferPtr->tilingFactor = 1.0f;
-
+    m_vertexBufferPtr->outlineThickness = 0.0f;
+    m_vertexBufferPtr->outlineColor = {0.0f, 0.0f, 0.0f, 0.0f};
     m_vertexBufferPtr++;
   }
 

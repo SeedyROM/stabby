@@ -157,9 +157,9 @@ bool FontAtlas::addGlyph(uint32_t codepoint, const uint8_t *bitmap,
   // Store glyph info
   GlyphInfo info;
   info.u0 = static_cast<float>(x) / m_width;
-  info.v0 = static_cast<float>(y + height) / m_height; // Flip v0 and v1
-  info.v1 = static_cast<float>(y) / m_height;
+  info.v0 = static_cast<float>(y) / m_height;
   info.u1 = static_cast<float>(x + width) / m_width;
+  info.v1 = static_cast<float>(y + height) / m_height;
   info.bearingX = bearingX;
   info.bearingY = bearingY;
   info.advance = advance;
@@ -349,13 +349,7 @@ void TextRenderer::renderText(Font &font, const std::string &text,
                               const glm::vec2 &position,
                               const glm::vec4 &color) {
 
-  GLuint texId = font.getAtlasTexture();
-  GLboolean isValid = glIsTexture(texId);
-  if (!isValid) {
-    std::cerr << "Font texture invalid at start of renderText" << std::endl;
-  }
-
-  // TODO(SeedyROM): Stop caching glyphs here, do it elsewhere
+  // Cache glyphs first
   for (char c : text) {
     uint32_t codepoint = static_cast<uint32_t>(c);
     if (!font.getGlyphInfo(codepoint)) {
@@ -363,40 +357,53 @@ void TextRenderer::renderText(Font &font, const std::string &text,
     }
   }
 
+  // Store original blend state
   GLint blendSrc, blendDst;
   glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
   glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
 
-  // Set up blending for text
+  // Set up text blending
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glm::vec2 pen = position;
   uint32_t prevChar = 0;
+  uint32_t fontTexture = font.getAtlasTexture();
+
+  // Create a TextureInfo for the font atlas
+  Renderer2D::TextureInfo fontTextureInfo{
+      fontTexture,
+      0, // Width not needed for atlas
+      0, // Height not needed for atlas
+      0  // Will be assigned by drawTexturedQuad
+  };
 
   for (char c : text) {
     uint32_t codepoint = static_cast<uint32_t>(c);
-    if (const auto *glyph = font.getGlyphInfo(codepoint)) {
-      // Apply kerning
-      pen.x += font.getKerning(prevChar, codepoint);
+    const auto *glyph = font.getGlyphInfo(codepoint);
+    if (!glyph)
+      continue;
 
-      // Calculate glyph position
-      float x = pen.x + glyph->bearingX;
-      float y = pen.y - (glyph->height - glyph->bearingY);
+    // Apply kerning
+    pen.x += font.getKerning(prevChar, codepoint);
 
-      // Render glyph quad
-      m_renderer.drawTexturedQuad(
-          {x + glyph->width * 0.5f, y + glyph->height * 0.5f},
-          {font.getAtlasTexture(), glyph->width, glyph->height},
-          {glyph->width, glyph->height}, color, 0.0f,
-          {glyph->u0, glyph->v0, glyph->u1, glyph->v1});
+    // Calculate glyph position
+    float x = pen.x + glyph->bearingX;
+    // Position relative to baseline
+    float y = pen.y + (font.getBaseline() - glyph->bearingY);
 
-      // Advance pen position
-      pen.x += glyph->advance;
-      prevChar = codepoint;
-    }
+    // Draw glyph
+    m_renderer.drawTexturedQuad(
+        {x + glyph->width * 0.5f, y + glyph->height * 0.5f, 0.0f},
+        fontTextureInfo, {glyph->width, glyph->height}, color, 0.0f,
+        {glyph->u0, glyph->v0, glyph->u1, glyph->v1});
+
+    // Advance pen and update previous character
+    pen.x += glyph->advance;
+    prevChar = codepoint;
   }
 
+  // Restore original blend state
   glBlendFunc(blendSrc, blendDst);
 }
 
