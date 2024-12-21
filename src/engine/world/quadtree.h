@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <vector>
+
 #include <glm/glm.hpp>
 
 // Axis-aligned bounding box

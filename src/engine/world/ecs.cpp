@@ -62,6 +62,9 @@ void World::addSystem(const std::string &label,
   auto &systems = isRender ? renderSystems : updateSystems;
   systems.push_back(SystemInfo{
       .func = std::move(func), .priority = priority, .label = label});
+
+  // When adding a system, sort the systems by priority
+  std::sort(systems.begin(), systems.end());
 }
 
 } // namespace ste

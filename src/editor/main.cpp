@@ -167,16 +167,17 @@ int main(int argc, char *argv[]) {
 
         // Draw a background for the FPS counter
         renderer->drawQuad({90.0f, 19.0f, 0.0f}, {180.0f, 35.0f},
-                           {0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 1.0f,
+                           {0.15f, 0.15f, 0.15f, 0.75f}, 0.0f, 1.0f,
                            {1.0f, 1.0f, 1.0f, 1.0f});
 
+        // Draw the FPS counter
         textRenderer->renderText(*font,
                                  "FPS: " + std::to_string(timer->getFPS()),
                                  {13.0f, 14.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
 
         renderer->endScene();
       },
-      0, true);
+      2, true);
 
   // Add the tool rendering
   world.addSystem(
@@ -200,7 +201,7 @@ int main(int argc, char *argv[]) {
         // End drawing the scene
         renderer->endScene();
       },
-      2, true);
+      1, true);
 
   // Render the map
   world.addSystem(
@@ -225,7 +226,7 @@ int main(int argc, char *argv[]) {
         // End drawing the scene
         renderer->endScene();
       },
-      1, true);
+      0, true);
 
   // Editor loop
   bool running = true;
