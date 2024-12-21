@@ -137,13 +137,25 @@ int main(int argc, char *argv[]) {
     }
   });
 
-  // Subscribe to event object placement
-  world.subscribe<Events::PlaceObject>([&map](const auto &event) {
-    std::cout << "Placing object at: " << event.position.x << ", "
-              << event.position.y << std::endl;
+  // Subscribe to event object placement, this needs access to resources
+  world.subscribe<Events::PlaceObject>([&map, &world](const auto &event) {
+    auto editorState = world.getResource<EditorState>();
 
-    // Add the object to the map
-    map.addTile("background", 0, event.position, {32.0f, 32.0f});
+    auto gridSize = editorState->tools.placementTool.gridSize;
+    auto halfGridSize = glm::vec2(gridSize.x / 2.0f, gridSize.y / 2.0f);
+
+    // If there's a tile at the position + half grid since it's center
+    // positions, remove it
+    if (auto tile = map.getTileAt({event.position.x + halfGridSize.x,
+                                   event.position.y + halfGridSize.y})) {
+      std::cout << "Removing object at: " << event.position.x << ", "
+                << event.position.y << std::endl;
+      map.removeTile("background", tile->tileId);
+    } else {
+      std::cout << "Placing object at: " << event.position.x << ", "
+                << event.position.y << std::endl;
+      auto tileId = map.addTile("background", 0, event.position, gridSize);
+    }
   });
 
   // Add the debug rendering

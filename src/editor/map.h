@@ -238,8 +238,9 @@ public:
   std::vector<TileLocation> getTilesAt(const glm::vec2 &position) const {
     std::shared_lock lock(mutex_);
 
-    // Create a small AABB around the point for the query
-    AABB queryArea(position - glm::vec2(0.1f), position + glm::vec2(0.1f));
+    // Create a small AABB around the point for the query, use the f32 epsilon
+    AABB queryArea(position - glm::vec2(std::numeric_limits<float>::epsilon()),
+                   position + glm::vec2(std::numeric_limits<float>::epsilon()));
 
     auto entries = spatialIndex_->query(queryArea);
     std::vector<TileLocation> result;
@@ -261,6 +262,14 @@ public:
     }
 
     return result;
+  }
+
+  std::optional<TileLocation> getTileAt(const glm::vec2 &position) const {
+    auto tiles = getTilesAt(position);
+    if (!tiles.empty()) {
+      return tiles.front();
+    }
+    return std::nullopt;
   }
 
 private:
