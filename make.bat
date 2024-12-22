@@ -23,6 +23,9 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+rem Create marker directory
+if not exist build\.markers mkdir build\.markers
+
 if "%1"=="" goto usage
 if "%1"=="-h" goto usage
 if "%1"=="--help" goto usage
@@ -33,7 +36,12 @@ if "%1"=="deps" goto deps
 if "%1"=="build-dev" goto build-dev
 if "%1"=="build-release" goto build-release
 if "%1"=="build" goto build
+if "%1"=="run-debug" goto run-debug
+if "%1"=="run-release" goto run-release
 if "%1"=="run" goto run
+if "%1"=="run-editor-debug" goto run-editor-debug
+if "%1"=="run-editor-release" goto run-editor-release
+if "%1"=="run-editor" goto run-editor
 if "%1"=="play" goto play
 if "%1"=="clean" goto clean
 echo Invalid target
@@ -46,23 +54,26 @@ echo Targets:
 echo   deps-debug    - Install debug dependencies using Conan
 echo   deps-release  - Install release dependencies using Conan
 echo   deps         - Install debug dependencies (default)
-echo   build-dev    - Build debug version
-echo   build-release- Build release version
+echo   build-dev    - Build debug version of game and editor
+echo   build-release- Build release version of game and editor
 echo   build       - Build debug version (default)
 echo   run         - Build and run the game
+echo   run-editor  - Build and run the editor
 echo   clean       - Remove build directory
 echo.
 echo Examples:
 echo   make deps    - Install dependencies
 echo   make build   - Build debug version
 echo   make run     - Build and run the game
-echo   make play    - Alias of run
+echo   make run-editor - Build and run the editor
+echo   make play    - Build and run the game
 echo   make clean   - Remove build directory
 goto :eof
 
 :deps-debug
 if exist conanfile.txt (
-    conan install . --build=missing -s build_type=RelWithDebInfo
+    conan install . --build=missing --profile=profiles/windows.profile -s build_type=RelWithDebInfo
+    type nul > build\.markers\deps-relwithdebinfo
 ) else (
     echo conanfile.txt not found
     exit /b 1
@@ -71,7 +82,8 @@ goto :eof
 
 :deps-release
 if exist conanfile.txt (
-    conan install . --build=missing -s build_type=Release
+    conan install . --build=missing --profile=profiles/windows.profile -s build_type=Release
+    type nul > build\.markers\deps-release
 ) else (
     echo conanfile.txt not found
     exit /b 1
@@ -83,16 +95,22 @@ call :deps-debug
 goto :eof
 
 :build-dev
+if not exist build\.markers\deps-relwithdebinfo call :deps-debug
 cmake --preset conan-relwithdebinfo -S . -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 if errorlevel 1 goto :error
-cmake --build build/RelWithDebInfo
+type nul > build\.markers\cmake-debug
+cmake --build build/RelWithDebInfo --target stabby
+cmake --build build/RelWithDebInfo --target editor
 if errorlevel 1 goto :error
 goto :eof
 
 :build-release
+if not exist build\.markers\deps-release call :deps-release
 cmake --preset conan-release -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 if errorlevel 1 goto :error
-cmake --build build/Release
+type nul > build\.markers\cmake-release
+cmake --build build/Release --target stabby
+cmake --build build/Release --target editor
 if errorlevel 1 goto :error
 goto :eof
 
@@ -100,7 +118,7 @@ goto :eof
 call :build-dev
 goto :eof
 
-:run-dev
+:run-debug
 call :build-dev
 build\RelWithDebInfo\src\game\stabby.exe
 goto :eof
@@ -111,7 +129,21 @@ build\Release\src\game\stabby.exe
 goto :eof
 
 :run
-call :run-dev
+call :run-debug
+goto :eof
+
+:run-editor-debug
+call :build-dev
+build\RelWithDebInfo\src\editor\editor.exe
+goto :eof
+
+:run-editor-release
+call :build-release
+build\Release\src\editor\editor.exe
+goto :eof
+
+:run-editor
+call :run-editor-debug
 goto :eof
 
 :play
