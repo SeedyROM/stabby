@@ -30,7 +30,7 @@ struct Spinny {
 struct TimeScaleState {
   float currentScale = 1.0f;
   float targetScale = 1.0f;
-  float transitionSpeed = 1.0f;
+  float transitionSpeed = 5.0f;
 };
 
 class GameScene : public ste::Scene {

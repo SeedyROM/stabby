@@ -27,14 +27,27 @@ RELEASE_EXE := build/Release/src/game/stabby
 DEBUG_EDITOR := build/RelWithDebInfo/src/editor/editor
 RELEASE_EDITOR := build/Release/src/editor/editor
 
+# Chose the correct profile based on the OS
+ifeq ($(OS),Windows_NT)
+	PROFILE := profiles/windows.profile
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		PROFILE := profiles/linux.profile
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		PROFILE := profiles/macos.profile
+	endif
+endif
+
 # Dependencies targets
 $(DEPS_DEBUG_MARKER): conanfile.txt
-	conan install . --build=missing -s build_type=RelWithDebInfo
+	conan install . --build=missing --profile=$(PROFILE) -s build_type=RelWithDebInfo
 	@mkdir -p $(MARKER_DIR)
 	@touch $@
 
 $(DEPS_RELEASE_MARKER): conanfile.txt
-	conan install . --build=missing -s build_type=Release
+	conan install . --build=missing --profile=$(PROFILE) -s build_type=Release
 	@mkdir -p $(MARKER_DIR)
 	@touch $@
 
