@@ -62,10 +62,6 @@ bool setupDefaultResources(ste::World &world) {
   auto assetManager = std::make_shared<ste::AssetManager>(assetLoader);
   assetManager->registerDefaults();
 
-  // Load a font
-  assetManager->load<ste::Font>("font",
-                                ste::getAssetPath("fonts/better-vcr.ttf@13"));
-
   // Create a renderer
   ste::Renderer2D::CreateInfo rendererCreateInfo;
   auto renderer = ste::Renderer2D::create(rendererCreateInfo);
@@ -109,8 +105,28 @@ bool setupEditorResources(ste::World &world) {
   return true;
 }
 
+bool loadAssets(ste::World &world) {
+  auto assetManager = world.getResource<ste::AssetManager>();
+
+  const std::pair<std::string, std::string> fontAssets[] = {
+      {"font", "assets/fonts/better-vcr.ttf@13"},
+  };
+
+  // Load the editor assets synchronously
+  for (const auto &[name, path] : fontAssets) {
+    auto font = assetManager->load<ste::Font>(name, path);
+    if (!font) {
+      std::cerr << "Failed to load font: " << path << std::endl;
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool setup(ste::World &world) {
-  return setupDefaultResources(world) && setupEditorResources(world);
+  return setupDefaultResources(world) && setupEditorResources(world) &&
+         loadAssets(world);
 }
 
 }; // namespace editor
