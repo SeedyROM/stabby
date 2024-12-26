@@ -236,6 +236,9 @@ public:
   void addSystem(const std::string &label, std::function<void(World &)> func,
                  int priority = 0, bool isRender = false);
 
+  void addRenderSystem(const std::string &label,
+                       std::function<void(World &)> func, int priority = -1);
+
   template <Event T> void subscribe(EventListener<T> listener) {
     auto &listeners = eventListeners[std::type_index(typeid(T))];
     listeners.push_back(std::move(listener));

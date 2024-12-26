@@ -67,4 +67,9 @@ void World::addSystem(const std::string &label,
   std::sort(systems.begin(), systems.end());
 }
 
+void World::addRenderSystem(const std::string &label,
+                            std::function<void(World &)> func, int priority) {
+  addSystem(label, std::move(func), priority, true);
+}
+
 } // namespace ste

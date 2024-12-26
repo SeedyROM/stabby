@@ -8,14 +8,16 @@
 #include "editor.h"
 
 int main(int argc, char *argv[]) {
+  // Create the editor in the world
   ste::World world;
   editor::setup(world);
 
   world.addSystem("Input Management", systems::inputManagement);
   world.addSystem("Placement Tool", systems::placementTool);
-  world.addSystem("Render Map", systems::renderMap, 0, true);
-  world.addSystem("Render Tools", systems::renderTools, 1, true);
-  world.addSystem("Render Debug Stats", systems::renderDebugStats, 2, true);
+
+  world.addRenderSystem("Render Map", systems::renderMap);
+  world.addRenderSystem("Render Tools", systems::renderTools);
+  world.addRenderSystem("Render Debug Stats", systems::renderDebugStats);
 
   world.subscribe<editor::PlaceObject>(handlers::objectPlacement);
 
