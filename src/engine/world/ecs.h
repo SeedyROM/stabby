@@ -34,7 +34,8 @@ class World;
 class Entity;
 
 // Event listener type
-template <Event T> using EventListener = std::function<void(const T &)>;
+template <Event T>
+using EventListener = std::function<void(World &, const T &)>;
 
 // Entity declaration
 class Entity {
@@ -244,7 +245,7 @@ public:
     auto it = eventListeners.find(std::type_index(typeid(T)));
     if (it != eventListeners.end()) {
       for (const auto &listener : it->second) {
-        std::any_cast<EventListener<T>>(listener)(event);
+        std::any_cast<EventListener<T>>(listener)(*this, event);
       }
     }
   }
