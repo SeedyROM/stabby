@@ -2,13 +2,13 @@
 
 namespace ste {
 
-std::optional<AssetLoader> AssetLoader::create(CreateInfo &createInfo) {
+std::shared_ptr<AssetLoader> AssetLoader::create(CreateInfo &createInfo) {
   try {
-    return AssetLoader(createInfo.numThreads);
+    return std::make_shared<AssetLoader>(createInfo.numThreads);
   } catch (const std::exception &e) {
     createInfo.success = false;
     createInfo.errorMsg = e.what();
-    return std::nullopt;
+    return nullptr;
   }
 }
 

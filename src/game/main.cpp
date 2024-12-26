@@ -19,19 +19,19 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  // Create and setup scene manager
-  auto sceneManager = createSceneManager(window).value_or(nullptr);
-  if (!sceneManager) {
-    std::cerr << "Failed to create scene manager!" << std::endl;
-    return -1;
-  }
+  // // Create and setup scene manager
+  // auto sceneManager = createSceneManager(window).value_or(nullptr);
+  // if (!sceneManager) {
+  //   std::cerr << "Failed to create scene manager!" << std::endl;
+  //   return -1;
+  // }
 
-  // Register game scene
-  sceneManager->registerScene(
-      "game", []() { return std::make_shared<game::GameScene>(); });
+  // // Register game scene
+  // sceneManager->registerScene(
+  //     "game", []() { return std::make_shared<game::GameScene>(); });
 
-  // Start with game scene
-  sceneManager->pushScene("game");
+  // // Start with game scene
+  // sceneManager->pushScene("game");
 
   // Initialize game timer
   ste::GameTimer timer(60);
@@ -46,13 +46,13 @@ int main(int argc, char *argv[]) {
       if (event.type == SDL_QUIT) {
         running = false;
       }
-      sceneManager->handleEvent(event);
+      // sceneManager->handleEvent(event);
     }
 
-    sceneManager->update(timer.getDeltaTime());
+    // sceneManager->update(timer.getDeltaTime());
 
     window->clearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    sceneManager->render();
+    // sceneManager->render();
     window->swapBuffers();
   }
 

@@ -326,7 +326,8 @@ const FontAtlas::GlyphInfo *Font::getGlyphInfo(uint32_t codepoint) const {
   return m_atlas.getGlyph(codepoint);
 }
 
-TextRenderer::TextRenderer(Renderer2D &renderer) : m_renderer(renderer) {}
+TextRenderer::TextRenderer(std::shared_ptr<Renderer2D> renderer)
+    : m_renderer(renderer) {}
 
 TextRenderer::TextMetrics
 TextRenderer::calculateMetrics(const Font &font,
@@ -393,7 +394,7 @@ void TextRenderer::renderText(Font &font, const std::string &text,
     float y = pen.y + (font.getBaseline() - glyph->bearingY);
 
     // Draw glyph
-    m_renderer.drawTexturedQuad(
+    m_renderer->drawTexturedQuad(
         {x + glyph->width * 0.5f, y + glyph->height * 0.5f, 0.0f},
         fontTextureInfo, {glyph->width, glyph->height}, color, 0.0f,
         {glyph->u0, glyph->v0, glyph->u1, glyph->v1});

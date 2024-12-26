@@ -118,7 +118,7 @@ public:
     float baseline; // Distance from top to baseline
   };
 
-  TextRenderer(Renderer2D &renderer);
+  explicit TextRenderer(std::shared_ptr<Renderer2D> renderer);
 
   // Calculate text metrics
   TextMetrics calculateMetrics(const Font &font, const std::string &text) const;
@@ -129,7 +129,7 @@ public:
                   const glm::vec4 &color = {1, 1, 1, 1});
 
 private:
-  Renderer2D &m_renderer;
+  std::shared_ptr<Renderer2D> m_renderer;
 };
 
 } // namespace ste

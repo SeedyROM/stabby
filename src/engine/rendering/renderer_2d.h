@@ -20,6 +20,16 @@ public:
     bool success = true;
   };
 
+  struct Vertex {
+    glm::vec3 position;
+    glm::vec4 color;
+    glm::vec2 texCoords;
+    float texIndex;
+    float tilingFactor;
+    float outlineThickness;
+    glm::vec4 outlineColor;
+  };
+
   struct TextureInfo {
     uint32_t id;
     int32_t width;
@@ -34,8 +44,10 @@ public:
     uint32_t indexCount = 0;
   };
 
-  static std::optional<Renderer2D> create(CreateInfo &createInfo);
+  static std::shared_ptr<Renderer2D> create(CreateInfo &createInfo);
 
+  explicit Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo, uint32_t ibo,
+                      Vertex *vertices);
   ~Renderer2D();
   Renderer2D(const Renderer2D &) = delete;
   Renderer2D &operator=(const Renderer2D &) = delete;
@@ -78,16 +90,6 @@ public:
   BlendMode getBlendMode() const { return m_currentBlendMode; }
 
 private:
-  struct Vertex {
-    glm::vec3 position;
-    glm::vec4 color;
-    glm::vec2 texCoords;
-    float texIndex;
-    float tilingFactor;
-    float outlineThickness;
-    glm::vec4 outlineColor;
-  };
-
   static constexpr uint32_t MAX_QUADS = 10000;
   static constexpr uint32_t MAX_VERTICES = MAX_QUADS * 4;
   static constexpr uint32_t MAX_INDICES = MAX_QUADS * 6;
@@ -111,8 +113,6 @@ private:
   GLsync m_fences[BUFFER_COUNT]{nullptr};
   uint32_t m_lastTextureId{0};
 
-  explicit Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo, uint32_t ibo,
-                      Vertex *vertices);
   void flush();
   void startBatch();
   void waitForBuffer(uint32_t bufferIndex);

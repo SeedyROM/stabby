@@ -43,8 +43,9 @@ public:
     size_t numThreads = std::thread::hardware_concurrency();
   };
 
-  static std::optional<AssetLoader> create(CreateInfo &createInfo);
+  static std::shared_ptr<AssetLoader> create(CreateInfo &createInfo);
 
+  explicit AssetLoader(size_t numThreads);
   ~AssetLoader();
   AssetLoader(const AssetLoader &) = delete;
   AssetLoader &operator=(const AssetLoader &) = delete;
@@ -71,8 +72,6 @@ public:
   float getLoadProgress() const;
 
 private:
-  explicit AssetLoader(size_t numThreads);
-
   struct AssetEntry {
     std::shared_ptr<void> asset;
     size_t refCount = 0;

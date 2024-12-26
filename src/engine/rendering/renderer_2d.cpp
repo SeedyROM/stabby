@@ -82,7 +82,7 @@ const char *fragmentShaderSource = R"(
     )";
 } // namespace
 
-std::optional<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
+std::shared_ptr<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
   // Create shader
   Shader::CreateInfo shaderInfo;
   auto shader = Shader::createFromMemory(vertexShaderSource,
@@ -90,7 +90,7 @@ std::optional<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
   if (!shader) {
     createInfo.success = false;
     createInfo.errorMsg = std::move(shaderInfo.errorMsg);
-    return std::nullopt;
+    return nullptr;
   }
 
   // Enable alpha blending
@@ -162,7 +162,8 @@ std::optional<Renderer2D> Renderer2D::create(CreateInfo &createInfo) {
   // Allocate vertex buffer memory
   auto *vertices = new Vertex[MAX_VERTICES];
 
-  return Renderer2D(std::move(*shader), vao, vbo, ibo, vertices);
+  return std::make_shared<Renderer2D>(std::move(*shader), vao, vbo, ibo,
+                                      vertices);
 }
 
 Renderer2D::Renderer2D(Shader &&shader, uint32_t vao, uint32_t vbo,

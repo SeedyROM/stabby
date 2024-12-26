@@ -38,10 +38,6 @@ struct PlaceObject {
 } // namespace Events
 
 int main(int argc, char *argv[]) {
-  Map map;
-
-  map.createLayer("background", 0);
-
   // Build a window
   auto window = ste::Window::builder()
                     .setTitle("Stabby Editor : v0.0.1")
@@ -76,27 +72,39 @@ int main(int argc, char *argv[]) {
   }
 
   // Setup the systems
-  auto textRenderer = std::make_shared<ste::TextRenderer>(*renderer);
-  ste::AudioManager audioManager;
+  auto textRenderer = std::make_shared<ste::TextRenderer>(renderer);
+  auto audioManager = std::make_shared<ste::AudioManager>();
   auto inputManager = std::make_shared<ste::InputManager>();
 
   // World tools
   auto camera =
       std::make_shared<ste::Camera2D>(window->getWidth(), window->getHeight());
-  auto editorState = std::make_shared<EditorState>();
   auto timer = std::make_shared<ste::GameTimer>(60.0f);
 
-  // Setup the world
-  ste::World world;
+  // Editor state
+  auto editorState = std::make_shared<EditorState>();
 
-  // Add resources
+  // Setup the world and map
+  ste::World world;
+  auto map = std::make_shared<Map>();
+  map->createLayer("background", 0);
+
+  // Add default resources
+  world.addResource(assetLoader);
+  world.addResource(audioManager);
   world.addResource(camera);
-  world.addResource(editorState);
   world.addResource(inputManager);
+  world.addResource(renderer);
+  world.addResource(textRenderer);
   world.addResource(timer);
+  world.addResource(window);
+
+  // Add the map
+  world.addResource(map);
+  world.addResource(editorState);
 
   // Add systems
-  world.addSystem("Input Manager", [](ste::World &world) {
+  world.addSystem("Input Management", [](ste::World &world) {
     auto inputManager = world.getResource<ste::InputManager>();
     inputManager->update();
 
@@ -138,31 +146,36 @@ int main(int argc, char *argv[]) {
   });
 
   // Subscribe to event object placement, this needs access to resources
-  world.subscribe<Events::PlaceObject>([&map, &world](const auto &event) {
+  world.subscribe<Events::PlaceObject>([&world](const auto &event) {
     auto editorState = world.getResource<EditorState>();
+    auto map = world.getResource<Map>();
 
     auto gridSize = editorState->tools.placementTool.gridSize;
     auto halfGridSize = glm::vec2(gridSize.x / 2.0f, gridSize.y / 2.0f);
 
     // If there's a tile at the position + half grid since it's center
     // positions, remove it
-    if (auto tile = map.getTileAt({event.position.x + halfGridSize.x,
-                                   event.position.y + halfGridSize.y})) {
+    if (auto tile = map->getTileAt({event.position.x + halfGridSize.x,
+                                    event.position.y + halfGridSize.y})) {
       std::cout << "Removing object at: " << event.position.x << ", "
                 << event.position.y << std::endl;
-      map.removeTile("background", tile->tileId);
+      map->removeTile("background", tile->tileId);
     } else {
       std::cout << "Placing object at: " << event.position.x << ", "
                 << event.position.y << std::endl;
-      auto tileId = map.addTile("background", 0, event.position, gridSize);
+      auto tileId = map->addTile("background", 0, event.position, gridSize);
     }
   });
 
   // Add the debug rendering
   world.addSystem(
       "Render Debug",
-      [&renderer, &textRenderer, &font, &window](ste::World &world) {
+      [&font](ste::World &world) {
         auto editorState = world.getResource<EditorState>();
+        auto renderer = world.getResource<ste::Renderer2D>();
+        auto textRenderer = world.getResource<ste::TextRenderer>();
+        auto window = world.getResource<ste::Window>();
+
         if (!editorState->debugMode)
           return;
 
@@ -194,9 +207,10 @@ int main(int argc, char *argv[]) {
   // Add the tool rendering
   world.addSystem(
       "Render Tools",
-      [&renderer](ste::World &world) {
+      [](ste::World &world) {
         auto camera = world.getResource<ste::Camera2D>();
         auto editorState = world.getResource<EditorState>();
+        auto renderer = world.getResource<ste::Renderer2D>();
 
         auto &placementTool = editorState->tools.placementTool;
 
@@ -218,15 +232,17 @@ int main(int argc, char *argv[]) {
   // Render the map
   world.addSystem(
       "Render Map",
-      [&map, &renderer](ste::World &world) {
+      [](ste::World &world) {
         auto camera = world.getResource<ste::Camera2D>();
         auto editorState = world.getResource<EditorState>();
+        auto map = world.getResource<Map>();
+        auto renderer = world.getResource<ste::Renderer2D>();
 
         // Begin drawing the scene
         renderer->beginScene(camera->getViewProjectionMatrix());
 
         // Draw the map
-        for (const auto &layer : map.layers()) {
+        for (const auto &layer : map->layers()) {
           for (const auto &tile : layer.getTiles()) {
             auto position = tile.getPosition();
             auto size = tile.getSize();

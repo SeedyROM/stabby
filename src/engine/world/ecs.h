@@ -226,7 +226,8 @@ public:
   template <Resource T> std::shared_ptr<T> getResource() {
     auto it = resources.find(std::type_index(typeid(T)));
     if (it == resources.end()) {
-      throw std::runtime_error("Resource not found");
+      throw std::runtime_error("Resource not found: " +
+                               std::string(typeid(T).name()));
     }
     return std::static_pointer_cast<T>(it->second);
   }
