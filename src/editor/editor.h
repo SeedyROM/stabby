@@ -11,6 +11,8 @@
 
 namespace editor {
 
+const std::string VERSION = "0.1.0";
+
 struct PlacementTool {
   glm::vec2 gridSize = {32.0f, 32.0f};
   glm::vec2 cursorPosition = glm::vec2(0.0f);
@@ -36,11 +38,13 @@ struct PlaceObject {
   glm::vec2 position;
 };
 
-bool setupDefaultResources(ste::World &world) {
+bool setupDefaultResources(ste::World &world,
+                           std::string title = "Editor v" + VERSION,
+                           u32 width = 1280, u32 height = 720) {
   // Build a window
   auto window = ste::Window::builder()
-                    .setTitle("Stabby Editor : v0.0.1")
-                    .setSize(1280, 720)
+                    .setTitle(title)
+                    .setSize(width, height)
                     .setVSync(true)
                     .setMSAA(8)
                     .build()
