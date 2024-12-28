@@ -2,6 +2,7 @@
 
 #include "engine/assets/assets.h"
 #include "engine/audio/audio.h"
+#include "engine/gui/gui.h"
 #include "engine/input/input_manager.h"
 #include "engine/rendering/rendering.h"
 #include "engine/time/game_timer.h"
