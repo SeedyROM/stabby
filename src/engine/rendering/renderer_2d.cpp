@@ -341,9 +341,8 @@ void Renderer2D::flush() {
 
 void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
                           const glm::vec4 &color, float rotation,
-                          float outlineThickness,
+                          const glm::vec2 &origin, float outlineThickness,
                           const glm::vec4 &outlineColor) {
-
   if (m_indexCount >= MAX_INDICES) {
     flush();
     startBatch();
@@ -352,20 +351,31 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
   const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
   const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
 
-  const float halfWidth = size.x * 0.5f;
-  const float halfHeight = size.y * 0.5f;
+  // Calculate the offset based on origin
+  glm::vec2 offset = -origin * size;
 
-  // Always use texture slot 0 (white texture) for untextured quads
   for (int i = 0; i < 4; i++) {
-    float x = (i == 1 || i == 2) ? halfWidth : -halfWidth;
-    float y = (i == 2 || i == 3) ? halfHeight : -halfHeight;
+    // Calculate vertex positions relative to origin point
+    float x = (i == 1 || i == 2) ? size.x : 0.0f;
+    float y = (i == 2 || i == 3) ? size.y : 0.0f;
 
-    m_vertexBufferPtr->position = {position.x + (x * c - y * s),
-                                   position.y + (x * s + y * c), position.z};
+    // Adjust by offset to account for origin
+    x += offset.x;
+    y += offset.y;
+
+    // Apply rotation
+    if (rotation != 0.0f) {
+      float origX = x;
+      float origY = y;
+      x = origX * c - origY * s;
+      y = origX * s + origY * c;
+    }
+
+    m_vertexBufferPtr->position = {position.x + x, position.y + y, position.z};
     m_vertexBufferPtr->color = color;
     m_vertexBufferPtr->texCoords = {(i == 1 || i == 2) ? 1.0f : 0.0f,
                                     (i == 2 || i == 3) ? 1.0f : 0.0f};
-    m_vertexBufferPtr->texIndex = 0.0f; // Use white texture
+    m_vertexBufferPtr->texIndex = 0.0f;
     m_vertexBufferPtr->tilingFactor = 1.0f;
     m_vertexBufferPtr->outlineThickness = outlineThickness;
     m_vertexBufferPtr->outlineColor = outlineColor;
@@ -378,18 +388,11 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size,
   m_stats.indexCount += 6;
 }
 
-void Renderer2D::drawTexturedQuad(const glm::vec2 &position,
-                                  const TextureInfo &texture,
-                                  const glm::vec2 &size, const glm::vec4 &tint,
-                                  float rotation, const glm::vec4 &texCoords) {
-  drawTexturedQuad({position.x, position.y, 0.0f}, texture, size, tint,
-                   rotation, texCoords);
-}
-
 void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
                                   const TextureInfo &texture,
                                   const glm::vec2 &size, const glm::vec4 &tint,
-                                  float rotation, const glm::vec4 &texCoords) {
+                                  float rotation, const glm::vec2 &origin,
+                                  const glm::vec4 &texCoords) {
   if (m_indexCount >= MAX_INDICES || m_textureSlotIndex >= MAX_TEXTURE_SLOTS) {
     flush();
     startBatch();
@@ -413,15 +416,27 @@ void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
   const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
   const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
 
-  const float halfWidth = size.x * 0.5f;
-  const float halfHeight = size.y * 0.5f;
+  // Calculate the offset based on origin
+  glm::vec2 offset = -origin * size;
 
   for (int i = 0; i < 4; i++) {
-    float x = (i == 1 || i == 2) ? halfWidth : -halfWidth;
-    float y = (i == 2 || i == 3) ? halfHeight : -halfHeight;
+    // Calculate vertex positions relative to origin point
+    float x = (i == 1 || i == 2) ? size.x : 0.0f;
+    float y = (i == 2 || i == 3) ? size.y : 0.0f;
 
-    m_vertexBufferPtr->position = {position.x + (x * c - y * s),
-                                   position.y + (x * s + y * c), position.z};
+    // Adjust by offset to account for origin
+    x += offset.x;
+    y += offset.y;
+
+    // Apply rotation
+    if (rotation != 0.0f) {
+      float origX = x;
+      float origY = y;
+      x = origX * c - origY * s;
+      y = origX * s + origY * c;
+    }
+
+    m_vertexBufferPtr->position = {position.x + x, position.y + y, position.z};
     m_vertexBufferPtr->color = tint;
     m_vertexBufferPtr->texCoords = {
         (i == 1 || i == 2) ? texCoords.z : texCoords.x,
@@ -437,6 +452,24 @@ void Renderer2D::drawTexturedQuad(const glm::vec3 &position,
   m_stats.quadCount++;
   m_stats.vertexCount += 4;
   m_stats.indexCount += 6;
+}
+
+// Implement the vec2 position overloads
+void Renderer2D::drawQuad(const glm::vec2 &position, const glm::vec2 &size,
+                          const glm::vec4 &color, float rotation,
+                          const glm::vec2 &origin, float outlineThickness,
+                          const glm::vec4 &outlineColor) {
+  drawQuad({position.x, position.y, 0.0f}, size, color, rotation, origin,
+           outlineThickness, outlineColor);
+}
+
+void Renderer2D::drawTexturedQuad(const glm::vec2 &position,
+                                  const TextureInfo &texture,
+                                  const glm::vec2 &size, const glm::vec4 &tint,
+                                  float rotation, const glm::vec2 &origin,
+                                  const glm::vec4 &texCoords) {
+  drawTexturedQuad({position.x, position.y, 0.0f}, texture, size, tint,
+                   rotation, origin, texCoords);
 }
 
 void Renderer2D::resetStats() { m_stats = Statistics(); }

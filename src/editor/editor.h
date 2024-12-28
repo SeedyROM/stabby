@@ -163,12 +163,10 @@ void placementTool(ste::World &world) {
   // Lock the cursor to a grid
   placementTool.cursorPosition.x =
       std::floor(placementTool.cursorPosition.x / placementTool.gridSize.x) *
-          placementTool.gridSize.x +
-      (placementTool.gridSize.x / 2.0f);
+      placementTool.gridSize.x;
   placementTool.cursorPosition.y =
       std::floor(placementTool.cursorPosition.y / placementTool.gridSize.y) *
-          placementTool.gridSize.y +
-      (placementTool.gridSize.y / 2.0f);
+      placementTool.gridSize.y;
 
   // If the user clicks emit an event
   if (inputManager->isMouseButtonPressed(ste::Input::MouseLeft)) {
@@ -197,16 +195,23 @@ void renderDebugStats(ste::World &world) {
       glm::ortho(0.0f, (float)window->getWidth(), (float)window->getHeight(),
                  0.0f, -1.0f, 1.0f);
 
+  auto fpsText =
+      textRenderer->createText(*font, "FPS: " + std::to_string(timer->getFPS()),
+                               {16.0f, 16.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+
   renderer->beginScene(uiProjection);
 
-  // Draw a background for the FPS counter
-  renderer->drawQuad({90.0f, 19.0f, 0.0f}, {180.0f, 35.0f},
-                     {0.15f, 0.15f, 0.15f, 0.75f}, 0.0f, 1.0f,
+  // Draw a background for the FPS counter based on the width and height of the
+  // text
+  auto textSize = fpsText.getSize();
+  auto textPosition = fpsText.getPosition();
+  renderer->drawQuad({textPosition.x - 8.0f, textPosition.y - 8.0f, 0.0f},
+                     {textSize.x + 18.0f, textSize.y + 13.0f},
+                     {0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, {0.0f, 0.0f}, 2.0f,
                      {1.0f, 1.0f, 1.0f, 1.0f});
 
-  // Draw the FPS counter
-  textRenderer->renderText(*font, "FPS: " + std::to_string(timer->getFPS()),
-                           {13.0f, 14.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+  // Render the FPS counter
+  fpsText.render();
 
   renderer->endScene();
 }
@@ -225,7 +230,8 @@ void renderTools(ste::World &world) {
   renderer->drawQuad(
       {placementTool.cursorPosition.x, placementTool.cursorPosition.y, 0.0f},
       {placementTool.gridSize.x, placementTool.gridSize.y},
-      {1.0f, 1.0f, 1.0f, 0.1f}, 0.0f, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+      {1.0f, 1.0f, 1.0f, 0.1f}, 0.0f, {0.0f, 0.0f}, 2.0f,
+      {1.0f, 1.0f, 1.0f, 1.0f});
 
   // End drawing the scene
   renderer->endScene();
@@ -265,12 +271,11 @@ void objectPlacement(ste::World &world, const PlaceObject &event) {
   auto map = world.getResource<Map>();
 
   auto gridSize = editorState->tools.placementTool.gridSize;
-  auto halfGridSize = glm::vec2(gridSize.x / 2.0f, gridSize.y / 2.0f);
 
   // If there's a tile at the position + half grid since it's center
   // positions, remove it
-  if (auto tile = map->getTileAt({event.position.x + halfGridSize.x,
-                                  event.position.y + halfGridSize.y})) {
+  if (auto tile = map->getTileAt({event.position.x + gridSize.x / 2.0f,
+                                  event.position.y + gridSize.y / 2.0f})) {
     std::cout << "Removing object at: " << event.position.x << ", "
               << event.position.y << std::endl;
     map->removeTile("background", tile->tileId);

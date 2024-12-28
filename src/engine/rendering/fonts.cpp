@@ -397,7 +397,7 @@ void TextRenderer::renderText(Font &font, const std::string &text,
     m_renderer->drawTexturedQuad(
         {x + glyph->width * 0.5f, y + glyph->height * 0.5f, 0.0f},
         fontTextureInfo, {glyph->width, glyph->height}, color, 0.0f,
-        {glyph->u0, glyph->v0, glyph->u1, glyph->v1});
+        {0.5f, 0.5f}, {glyph->u0, glyph->v0, glyph->u1, glyph->v1});
 
     // Advance pen and update previous character
     pen.x += glyph->advance;
@@ -406,6 +406,27 @@ void TextRenderer::renderText(Font &font, const std::string &text,
 
   // Restore original blend state
   glBlendFunc(blendSrc, blendDst);
+}
+
+Text TextRenderer::createText(Font &font, const std::string &text,
+                              const glm::vec2 &position,
+                              const glm::vec4 &color) {
+  return Text(*this, font, text, position, color);
+}
+
+Text::Text(TextRenderer &renderer, Font &font, const std::string &text,
+           const glm::vec2 &position, const glm::vec4 &color)
+    : m_renderer(renderer), m_font(font), m_text(text), m_position(position),
+      m_color(color) {}
+
+void Text::render() {
+  m_renderer.renderText(m_font, m_text, m_position, m_color);
+}
+
+glm::vec2 Text::getSize() const {
+  TextRenderer::TextMetrics metrics =
+      m_renderer.calculateMetrics(m_font, m_text);
+  return {metrics.width, metrics.height};
 }
 
 } // namespace ste

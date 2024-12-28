@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "engine/utils.h"
+
 #include "renderer_2d.h"
 
 namespace ste {
@@ -109,6 +111,32 @@ private:
   float m_baseline{0};
 };
 
+class TextRenderer;
+
+class Text {
+public:
+  Text(TextRenderer &renderer, Font &font, const std::string &text,
+       const glm::vec2 &position, const glm::vec4 &color = {1, 1, 1, 1});
+
+  void render();
+
+  glm::vec2 getSize() const;
+  glm::vec2 getPosition() const { return m_position; }
+  std::string getText() const { return m_text; }
+  glm::vec4 getColor() const { return m_color; }
+
+  void setPosition(const glm::vec2 &position) { m_position = position; }
+  void setText(const std::string &text) { m_text = text; }
+  void setColor(const glm::vec4 &color) { m_color = color; }
+
+private:
+  TextRenderer &m_renderer;
+  Font &m_font;
+  std::string m_text;
+  glm::vec2 m_position;
+  glm::vec4 m_color;
+};
+
 // Text renderer
 class TextRenderer {
 public:
@@ -125,6 +153,11 @@ public:
 
   // Render text
   void renderText(Font &font, const std::string &text,
+                  const glm::vec2 &position,
+                  const glm::vec4 &color = {1, 1, 1, 1});
+
+  // Create text object
+  Text createText(Font &font, const std::string &text,
                   const glm::vec2 &position,
                   const glm::vec4 &color = {1, 1, 1, 1});
 
