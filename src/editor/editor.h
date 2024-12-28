@@ -109,7 +109,7 @@ bool loadAssets(ste::World &world) {
   auto assetManager = world.getResource<ste::AssetManager>();
 
   const std::pair<std::string, std::string> fontAssets[] = {
-      {"font", "assets/fonts/better-vcr.ttf@13"},
+      {"font", "assets/fonts/better-vcr.ttf@11"},
   };
 
   // Load the editor assets synchronously
@@ -206,7 +206,7 @@ void renderDebugStats(ste::World &world) {
   auto textSize = fpsText.getSize();
   auto textPosition = fpsText.getPosition();
   renderer->drawQuad({textPosition.x - 8.0f, textPosition.y - 8.0f, 0.0f},
-                     {textSize.x + 18.0f, textSize.y + 13.0f},
+                     {textSize.x + 16.0f, textSize.y + 16.0f},
                      {0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, {0.0f, 0.0f}, 2.0f,
                      {1.0f, 1.0f, 1.0f, 1.0f});
 

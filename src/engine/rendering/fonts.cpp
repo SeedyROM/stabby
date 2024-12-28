@@ -414,19 +414,30 @@ Text TextRenderer::createText(Font &font, const std::string &text,
   return Text(*this, font, text, position, color);
 }
 
-Text::Text(TextRenderer &renderer, Font &font, const std::string &text,
+Text::Text(TextRenderer &renderer, Font &font, std::string text,
            const glm::vec2 &position, const glm::vec4 &color)
-    : m_renderer(renderer), m_font(font), m_text(text), m_position(position),
-      m_color(color) {}
-
-void Text::render() {
-  m_renderer.renderText(m_font, m_text, m_position, m_color);
+    : m_renderer(renderer), m_font(font), m_text(std::move(text)),
+      m_position(position), m_color(color) {
+  updateMetricsIfNeeded();
 }
 
-glm::vec2 Text::getSize() const {
-  TextRenderer::TextMetrics metrics =
-      m_renderer.calculateMetrics(m_font, m_text);
-  return {metrics.width, metrics.height};
+void Text::updateMetricsIfNeeded() {
+  if (m_needsMetricsUpdate) {
+    TextRenderer::TextMetrics metrics =
+        m_renderer.calculateMetrics(m_font, m_text);
+    // The total height should account for the font's full line height
+    float totalHeight = m_font.getLineHeight();
+    m_cachedSize = {metrics.width, totalHeight};
+    m_needsMetricsUpdate = false;
+  }
+}
+
+void Text::render() {
+  updateMetricsIfNeeded();
+
+  if (!m_text.empty()) {
+    m_renderer.renderText(m_font, m_text, m_position, m_color);
+  }
 }
 
 } // namespace ste
