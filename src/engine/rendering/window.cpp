@@ -60,6 +60,8 @@ std::optional<std::shared_ptr<Window>> Window::Builder::build() {
     flags |= SDL_WINDOW_RESIZABLE;
   if (m_config.fullscreen)
     flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+  if (m_config.allowHighDPI)
+    flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 
   SDL_Window *window = SDL_CreateWindow(
       m_config.title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

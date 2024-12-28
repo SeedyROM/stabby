@@ -244,14 +244,18 @@ std::optional<Font> Font::createFromFile(const std::string &path,
     return std::nullopt;
   }
 
-  if (FT_Set_Pixel_Sizes(face, 0, createInfo.size) != 0) {
+  // Calculate DPI-adjusted size
+  uint32_t adjustedSize = static_cast<uint32_t>(
+      std::round(createInfo.size * (createInfo.dpi / 96.0f)));
+
+  if (FT_Set_Pixel_Sizes(face, 0, adjustedSize) != 0) {
     FT_Done_Face(face);
     createInfo.success = false;
     createInfo.errorMsg = "Failed to set font size";
     return std::nullopt;
   }
 
-  return Font(face, createInfo.size);
+  return Font(face, adjustedSize);
 }
 
 Font::Font(FT_Face face, uint32_t size) : m_face(face) {

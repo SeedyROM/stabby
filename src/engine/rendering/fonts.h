@@ -80,7 +80,8 @@ public:
   struct CreateInfo {
     std::string errorMsg;
     bool success = true;
-    uint32_t size = 16; // Font size in pixels
+    uint32_t size = 16;
+    float dpi = 96.0f;
   };
 
   static std::optional<Font> createFromFile(const std::string &path,

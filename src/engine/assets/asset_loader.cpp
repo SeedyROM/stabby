@@ -1,5 +1,7 @@
 #include "asset_loader.h"
 
+#include "engine/rendering/window.h"
+
 namespace ste {
 
 std::shared_ptr<AssetLoader> AssetLoader::create(CreateInfo &createInfo) {
@@ -91,6 +93,8 @@ AssetHandle<T> AssetLoader::load(const std::string &path) {
       }
     } else if constexpr (std::is_same_v<T, Font>) {
       Font::CreateInfo createInfo;
+      auto dpi = Window::getDpi();
+      createInfo.dpi = dpi;
 
       // Get the font size from the path
       size_t sizePos = path.find('@');

@@ -23,6 +23,7 @@ public:
     bool resizable = false;
     bool fullscreen = false;
     int msaa = 0;
+    bool allowHighDPI = true;
   };
 
   class Builder {
@@ -75,6 +76,15 @@ public:
   inline int getHeight() const { return m_config.height; }
   inline std::pair<int, int> getSize() const {
     return {m_config.width, m_config.height};
+  }
+  inline static float getDpi() {
+    float dpi;
+
+    if (SDL_GetDisplayDPI(0, nullptr, &dpi, nullptr) != 0) {
+      return 96.0f;
+    }
+
+    return dpi;
   }
 
   // Inline rendering operations
