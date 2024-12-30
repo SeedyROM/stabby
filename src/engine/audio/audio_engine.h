@@ -87,7 +87,6 @@ public:
   void fadeChannel(int channelId, float targetVolume, float duration);
   void setMasterVolume(float volume);
 
-  // TODO(SeedyROM): Move this to a separate file
   void beginShutdown() {
     m_shutdownRequested = true;
     m_shutdownRampRemaining = SHUTDOWN_RAMP_DURATION;
