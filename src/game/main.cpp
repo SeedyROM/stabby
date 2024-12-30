@@ -30,13 +30,12 @@ int main(int argc, char *argv[]) {
       if (event.type == SDL_QUIT) {
         running = false;
       }
-      // sceneManager->handleEvent(event);
     }
 
-    // sceneManager->update(timer.getDeltaTime());
-
     window->clearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    // sceneManager->render();
+
+    // Render the game
+
     window->swapBuffers();
   }
 
