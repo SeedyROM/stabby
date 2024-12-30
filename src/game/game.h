@@ -155,7 +155,7 @@ private:
             m_renderer->drawTexturedQuad(
                 {transform.position.x, 720 - transform.position.y}, texInfo,
                 transform.scale, {1.0f, 1.0f, 1.0f, 1.0f}, transform.rotation,
-                {0.0f, 0.0f, 1.0f, 1.0f});
+                {0.5f, 0.5f}, {0.0f, 0.0f, 1.0f, 1.0f});
           }
         },
         0, true);
