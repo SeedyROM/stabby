@@ -67,6 +67,7 @@ public:
     registerType<Texture>();
     registerType<AudioFile>();
     registerType<Font>();
+    registerType<Map>();
   }
 
   template <typename T>

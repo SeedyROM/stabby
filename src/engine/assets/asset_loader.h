@@ -15,6 +15,7 @@
 #include "engine/rendering/fonts.h"
 #include "engine/rendering/shader.h"
 #include "engine/rendering/texture.h"
+#include "engine/world/map.h"
 
 namespace ste {
 

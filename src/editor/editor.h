@@ -22,7 +22,7 @@ struct Tools {
 
 struct Level {
   std::string name;
-  Map map;
+  ste::Map map;
 };
 
 struct EditorState {
@@ -95,11 +95,8 @@ bool setupDefaultResources(ste::World &world) {
 }
 
 bool setupEditorResources(ste::World &world) {
-  auto map = std::make_shared<Map>();
   auto editorState = std::make_shared<EditorState>();
-  map->createLayer("background", 0);
 
-  world.addResource(map);
   world.addResource(editorState);
 
   return true;
@@ -121,12 +118,56 @@ bool loadAssets(ste::World &world) {
     }
   }
 
+  // Load the example default map
+  try {
+    auto defaultMap =
+        assetManager->load<ste::Map>("default_map", "assets/maps/default.json");
+
+    if (!defaultMap) {
+      std::cerr << "Failed to load default map" << std::endl;
+      return false;
+    }
+
+    // Set up the editor state with the loaded map
+    auto editorState = world.getResource<EditorState>();
+    editorState->currentLevel.name = "default";
+    editorState->currentLevel.map = std::move(*defaultMap);
+
+    // Debug print the map
+    auto &map = editorState->currentLevel.map;
+    for (const auto &layer : map.layers()) {
+      std::cout << "Layer: " << layer.getName() << std::endl;
+      for (const auto &tile : layer.getTiles()) {
+        std::cout << "Tile: " << tile.getId() << " at " << tile.getPosition().x
+                  << ", " << tile.getPosition().y << std::endl;
+      }
+    }
+
+  } catch (const std::exception &e) {
+    std::cerr << "Failed to load default map: " << e.what() << std::endl;
+    return false;
+  }
+
   return true;
 }
 
 bool setup(ste::World &world) {
-  return setupDefaultResources(world) && setupEditorResources(world) &&
-         loadAssets(world);
+  if (!setupDefaultResources(world)) {
+    std::cerr << "Failed to setup default resources!" << std::endl;
+    return false;
+  }
+
+  if (!setupEditorResources(world)) {
+    std::cerr << "Failed to setup editor resources!" << std::endl;
+    return false;
+  }
+
+  if (!loadAssets(world)) {
+    std::cerr << "Failed to load assets!" << std::endl;
+    return false;
+  }
+
+  return true;
 }
 
 }; // namespace editor
@@ -243,7 +284,7 @@ void renderTools(ste::World &world) {
 void renderMap(ste::World &world) {
   auto camera = world.getResource<ste::Camera2D>();
   auto editorState = world.getResource<EditorState>();
-  auto map = world.getResource<Map>();
+  auto map = &editorState->currentLevel.map;
   auto renderer = world.getResource<ste::Renderer2D>();
 
   // Begin drawing the scene
@@ -267,11 +308,9 @@ void renderMap(ste::World &world) {
 
 namespace handlers {
 
-using namespace editor;
-
-void objectPlacement(ste::World &world, const PlaceObject &event) {
-  auto editorState = world.getResource<EditorState>();
-  auto map = world.getResource<Map>();
+void objectPlacement(ste::World &world, const editor::PlaceObject &event) {
+  auto editorState = world.getResource<editor::EditorState>();
+  auto map = &editorState->currentLevel.map;
 
   auto gridSize = editorState->tools.placementTool.gridSize;
 
