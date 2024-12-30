@@ -132,17 +132,6 @@ bool loadAssets(ste::World &world) {
     auto editorState = world.getResource<EditorState>();
     editorState->currentLevel.name = "default";
     editorState->currentLevel.map = std::move(*defaultMap);
-
-    // Debug print the map
-    auto &map = editorState->currentLevel.map;
-    for (const auto &layer : map.layers()) {
-      std::cout << "Layer: " << layer.getName() << std::endl;
-      for (const auto &tile : layer.getTiles()) {
-        std::cout << "Tile: " << tile.getId() << " at " << tile.getPosition().x
-                  << ", " << tile.getPosition().y << std::endl;
-      }
-    }
-
   } catch (const std::exception &e) {
     std::cerr << "Failed to load default map: " << e.what() << std::endl;
     return false;
