@@ -14,6 +14,7 @@ find_package(glm REQUIRED)
 find_package(glad REQUIRED)
 find_package(Vorbis REQUIRED)
 find_package(freetype REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # Add the library/game directories
 add_subdirectory(src/engine)

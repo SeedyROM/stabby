@@ -1,30 +1,6 @@
 #include "map.h"
 
-// Tile implementations
-Tile Tile::create(Id tileType, const glm::vec2 &position,
-                  const glm::vec2 &size) {
-  return Tile(tileType, position, size);
-}
-
-Tile::Id Tile::getId() const { return id_; }
-Tile::Id Tile::getTileType() const { return tileType_; }
-const glm::vec2 &Tile::getPosition() const { return position_; }
-const glm::vec2 &Tile::getSize() const { return size_; }
-
-AABB Tile::getBounds() const { return AABB(position_, position_ + size_); }
-
-bool Tile::operator==(const Tile &other) const {
-  return id_ == other.id_ && tileType_ == other.tileType_;
-}
-
-Tile::Tile(Id tileType, const glm::vec2 &position, const glm::vec2 &size)
-    : id_(generateId()), tileType_(tileType), position_(position), size_(size) {
-}
-
-Tile::Id Tile::generateId() {
-  static std::atomic<Id> nextId{0};
-  return nextId++;
-}
+namespace ste {
 
 // MapEntry implementation
 MapEntry::MapEntry(const std::string &layerName, Tile::Id tileId,
@@ -96,22 +72,18 @@ Map::LayerIterator::reference Map::LayerIterator::operator*() const {
 Map::LayerContainer::LayerContainer(const Map &map) : map_(map) {}
 
 Map::LayerIterator Map::LayerContainer::begin() const {
-  std::shared_lock lock(map_.mutex_);
   return LayerIterator(map_.layers_.begin());
 }
 
 Map::LayerIterator Map::LayerContainer::end() const {
-  std::shared_lock lock(map_.mutex_);
   return LayerIterator(map_.layers_.end());
 }
 
-bool Map::createLayer(const LayerName &name, int depth) {
-  std::unique_lock lock(mutex_);
+bool Map::addLayer(const LayerName &name, int depth) {
   return layers_.try_emplace(name, Layer(name, depth)).second;
 }
 
 bool Map::removeLayer(const LayerName &name) {
-  std::unique_lock lock(mutex_);
   auto it = layers_.find(name);
   if (it != layers_.end()) {
     for (const auto &tile : it->second.getTiles()) {
@@ -131,7 +103,6 @@ std::optional<Tile::Id> Map::addTile(const LayerName &layerName,
                                      Tile::Id tileType,
                                      const glm::vec2 &position,
                                      const glm::vec2 &size) {
-  std::unique_lock lock(mutex_);
   auto it = layers_.find(layerName);
   if (it != layers_.end()) {
     auto tile = Tile::create(tileType, position, size);
@@ -148,7 +119,6 @@ std::optional<Tile::Id> Map::addTile(const LayerName &layerName,
 }
 
 bool Map::removeTile(const LayerName &layerName, Tile::Id tileId) {
-  std::unique_lock lock(mutex_);
   auto it = layers_.find(layerName);
   if (it != layers_.end()) {
     if (it->second.removeTile(tileId)) {
@@ -162,8 +132,6 @@ bool Map::removeTile(const LayerName &layerName, Tile::Id tileId) {
 }
 
 std::vector<TileLocation> Map::getTilesAt(const glm::vec2 &position) const {
-  std::shared_lock lock(mutex_);
-
   // Create a small AABB around the point for the query, use the f32 epsilon
   AABB queryArea(position - glm::vec2(std::numeric_limits<float>::epsilon()),
                  position + glm::vec2(std::numeric_limits<float>::epsilon()));
@@ -197,3 +165,5 @@ std::optional<TileLocation> Map::getTileAt(const glm::vec2 &position) const {
   }
   return std::nullopt;
 }
+
+} // namespace ste

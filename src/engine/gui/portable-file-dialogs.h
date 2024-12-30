@@ -455,7 +455,6 @@ static inline bool is_directory(std::string const &path) {
   auto attr = GetFileAttributesA(path.c_str());
   return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY);
 #elif __EMSCRIPTEN__
-  // TODO
   return false;
 #else
   struct stat s;

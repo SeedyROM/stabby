@@ -111,6 +111,15 @@ AssetHandle<T> AssetLoader::load(const std::string &path) {
         m_totalAssets--;
         throw std::runtime_error(createInfo.errorMsg);
       }
+    } else if constexpr (std::is_same_v<T, Map>) {
+      try {
+        auto map = MapSerializer::deserializeFromFile(path);
+        return AssetHandle<T>(std::make_shared<Map>(std::move(map)));
+      } catch (const std::exception &e) {
+        m_totalAssets--;
+        throw std::runtime_error("Failed to load map: " +
+                                 std::string(e.what()));
+      }
     } else {
       // Asset type-specific loading logic here
       throw std::runtime_error("Unsupported asset type");
@@ -189,5 +198,11 @@ template std::future<AssetHandle<Font>>
 AssetLoader::loadAsync<Font>(const std::string &);
 template bool AssetLoader::exists<Font>(const std::string &) const;
 template void AssetLoader::remove<Font>(const std::string &);
+
+template AssetHandle<Map> AssetLoader::load<Map>(const std::string &);
+template std::future<AssetHandle<Map>>
+AssetLoader::loadAsync<Map>(const std::string &);
+template bool AssetLoader::exists<Map>(const std::string &) const;
+template void AssetLoader::remove<Map>(const std::string &);
 
 } // namespace ste

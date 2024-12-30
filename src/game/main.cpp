@@ -2,8 +2,6 @@
 
 #include <engine/engine.h>
 
-#include "game.h"
-
 int main(int argc, char *argv[]) {
   // Build a window
   auto window = ste::Window::builder()
@@ -18,20 +16,6 @@ int main(int argc, char *argv[]) {
     std::cerr << "Failed to create window!" << std::endl;
     return -1;
   }
-
-  // // Create and setup scene manager
-  // auto sceneManager = createSceneManager(window).value_or(nullptr);
-  // if (!sceneManager) {
-  //   std::cerr << "Failed to create scene manager!" << std::endl;
-  //   return -1;
-  // }
-
-  // // Register game scene
-  // sceneManager->registerScene(
-  //     "game", []() { return std::make_shared<game::GameScene>(); });
-
-  // // Start with game scene
-  // sceneManager->pushScene("game");
 
   // Initialize game timer
   ste::GameTimer timer(60);
