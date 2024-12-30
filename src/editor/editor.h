@@ -123,11 +123,6 @@ bool loadAssets(ste::World &world) {
     auto defaultMap =
         assetManager->load<ste::Map>("default_map", "assets/maps/default.json");
 
-    if (!defaultMap) {
-      std::cerr << "Failed to load default map" << std::endl;
-      return false;
-    }
-
     // Set up the editor state with the loaded map
     auto editorState = world.getResource<EditorState>();
     editorState->currentLevel.name = "default";
