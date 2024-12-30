@@ -8,4 +8,3 @@
 #include "engine/time/game_timer.h"
 #include "engine/utils.h"
 #include "engine/world/world.h"
-#include "scene/scene.h"

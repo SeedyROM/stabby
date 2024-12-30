@@ -106,12 +106,12 @@ bool loadAssets(ste::World &world) {
   auto assetManager = world.getResource<ste::AssetManager>();
 
   const std::pair<std::string, std::string> fontAssets[] = {
-      {"font", "assets/fonts/better-vcr.ttf@11"},
+      {"font", "fonts/better-vcr.ttf@11"},
   };
 
   // Load the editor assets synchronously
   for (const auto &[name, path] : fontAssets) {
-    auto font = assetManager->load<ste::Font>(name, path);
+    auto font = assetManager->load<ste::Font>(name, ste::getAssetPath(path));
     if (!font) {
       std::cerr << "Failed to load font: " << path << std::endl;
       return false;
@@ -120,8 +120,8 @@ bool loadAssets(ste::World &world) {
 
   // Load the example default map
   try {
-    auto defaultMap =
-        assetManager->load<ste::Map>("default_map", "assets/maps/default.json");
+    auto defaultMap = assetManager->load<ste::Map>(
+        "default_map", ste::getAssetPath("maps/default.json"));
 
     // Set up the editor state with the loaded map
     auto editorState = world.getResource<EditorState>();
