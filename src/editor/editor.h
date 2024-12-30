@@ -195,8 +195,11 @@ void renderDebugStats(ste::World &world) {
       glm::ortho(0.0f, (float)window->getWidth(), (float)window->getHeight(),
                  0.0f, -1.0f, 1.0f);
 
+  char *truncatedFps;
+  asprintf(&truncatedFps, "%.4f", timer->getFPS());
+
   auto fpsText =
-      textRenderer->createText(*font, "FPS: " + std::to_string(timer->getFPS()),
+      textRenderer->createText(*font, "FPS: " + std::string(truncatedFps),
                                {16.0f, 16.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
 
   renderer->beginScene(uiProjection);
@@ -207,7 +210,7 @@ void renderDebugStats(ste::World &world) {
   auto textPosition = fpsText.getPosition();
   renderer->drawQuad({textPosition.x - 8.0f, textPosition.y - 8.0f, 0.0f},
                      {textSize.x + 16.0f, textSize.y + 16.0f},
-                     {0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, {0.0f, 0.0f}, 2.0f,
+                     {0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, {0.0f, 0.0f}, 1.0f,
                      {1.0f, 1.0f, 1.0f, 1.0f});
 
   // Render the FPS counter
