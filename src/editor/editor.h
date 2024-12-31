@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iomanip>
 #include <map>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
@@ -220,8 +222,10 @@ void renderDebugStats(ste::World &world) {
       glm::ortho(0.0f, (float)window->getWidth(), (float)window->getHeight(),
                  0.0f, -1.0f, 1.0f);
 
-  char *truncatedFps;
-  asprintf(&truncatedFps, "%.4f", timer->getFPS());
+  // Get the FPS as a string, truncate it to 4 decimal places
+  std::stringstream ss;
+  ss << std::fixed << std::setprecision(4) << timer->getFPS();
+  std::string truncatedFps = ss.str();
 
   auto fpsText =
       textRenderer->createText(*font, "FPS: " + std::string(truncatedFps),
